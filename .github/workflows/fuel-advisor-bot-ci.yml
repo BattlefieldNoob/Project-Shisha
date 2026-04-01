@@ -10,5 +10,8 @@ on:
 jobs:
   build:
     uses: ./.github/workflows/app-ci.yml
+    permissions:
+      contents: read
+      packages: write
     with:
       app-name: fuel-advisor-bot
