@@ -1,11 +1,5 @@
 name: Build and Push Application
 
-on:
-  push:
-    branches: [ main ]
-    paths:
-      - 'apps/{app-name}/**'
-
 env:
   REGISTRY: ghcr.io
   IMAGE_BASE: battlefieldnoob/project-shisha
