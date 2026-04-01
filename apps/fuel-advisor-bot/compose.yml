@@ -20,4 +20,4 @@ services:
 networks:
   app-network:
     external: true
-      retries: 3
+    retries: 3

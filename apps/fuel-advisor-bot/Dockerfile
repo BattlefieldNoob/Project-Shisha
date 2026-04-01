@@ -1,27 +1,19 @@
 # Fuel Advisor Bot - Dockerfile (Safe Strategy - Full Bun Runtime)
-FROM oven/bun:latest
+FROM oven/bun:1-slim
 
 # Set working directory
 WORKDIR /app
 
-# Copy package files
-COPY package.json bun.lock ./
+# Install only runtime deps using the app-local package manifest.
+COPY package.json ./
+RUN bun install --production
 
-# Install dependencies
-RUN bun install --frozen-lockfile
-
-# Copy source code
+# Copy application source and runtime assets.
 COPY src/ ./src/
-
-# Copy public assets
-COPY public/ ./public/
+COPY data/ ./data/
 
 # Expose port
 EXPOSE 3000
 
 # Start the application
 CMD ["bun", "run", "src/index.ts"]
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
-EXPOSE 3000
-CMD ["bun", "run", "start"]
