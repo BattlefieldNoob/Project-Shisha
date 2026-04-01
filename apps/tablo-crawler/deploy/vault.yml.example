@@ -1,0 +1,21 @@
+# Example vault file - copy to vault.yml and encrypt with ansible-vault
+# Run: cp vault.yml.example vault.yml
+# Then: ansible-vault encrypt vault.yml
+
+---
+# Required: Your Tablo authentication token
+vault_tablo_auth_token: "your_tablo_auth_token_here"
+
+# Optional: Telegram integration (leave empty to disable)
+vault_telegram_bot_token: ""
+vault_telegram_chat_id: ""
+
+# Optional: Custom search coordinates (defaults to Padova)
+vault_search_latitude: "45.408153"
+vault_search_longitude: "11.875273"
+
+# Required: GitHub Container Registry authentication
+# Create a Personal Access Token at https://github.com/settings/tokens
+# Token needs 'read:packages' permission for private repositories
+vault_github_username: "your_github_username"
+vault_github_token: "ghp_your_personal_access_token_here"

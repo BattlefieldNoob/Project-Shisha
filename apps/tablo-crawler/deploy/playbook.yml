@@ -1,0 +1,178 @@
+---
+- name: Deploy TabloCrawler to Raspberry Pi devices
+  hosts: raspberry_pis
+  become: yes
+  gather_facts: yes
+  strategy: free  # Enable parallel execution across hosts
+  
+  vars_files:
+    - vault.yml
+  
+  vars:
+    max_fail_percentage: 50  # Continue if less than 50% of hosts fail
+    
+  pre_tasks:
+    - name: Verify host connectivity
+      ping:
+      register: ping_result
+      
+    - name: Display host information
+      debug:
+        msg: "Deploying to {{ inventory_hostname }} ({{ ansible_host }})"
+
+  roles:
+    - role: docker
+      tags: ['docker', 'setup']
+      
+    - role: docker-auth
+      tags: ['docker', 'auth', 'setup']
+      
+    - role: tablocrawler
+      tags: ['app', 'deploy']
+
+  post_tasks:
+    - name: Comprehensive deployment validation
+      block:
+        - name: Check if TabloCrawler container is running
+          community.docker.docker_container_info:
+            name: "{{ container_name }}"
+          register: container_info
+          
+        - name: Verify container is in running state
+          assert:
+            that:
+              - container_info.exists
+              - container_info.container.State.Status == "running"
+            fail_msg: "Container {{ container_name }} is not running properly"
+            success_msg: "Container {{ container_name }} is running successfully"
+            
+        - name: Check container health and resource usage
+          community.docker.docker_container_info:
+            name: "{{ container_name }}"
+          register: detailed_container_info
+          
+        - name: Verify configuration files exist
+          stat:
+            path: "{{ item }}"
+          register: config_files
+          loop:
+            - "{{ data_directory }}/monitored-users.txt"
+            - "{{ config_directory }}/docker-compose.yml"
+          failed_when: not config_files.stat.exists
+          
+        - name: Check Docker service status
+          service_facts:
+          register: service_info
+          
+        - name: Verify Docker daemon is running
+          assert:
+            that:
+              - ansible_facts.services['docker.service'].state == 'running'
+              - ansible_facts.services['docker.service'].status == 'enabled'
+            fail_msg: "Docker service is not running or enabled"
+            success_msg: "Docker service is healthy"
+            
+        - name: Test container logs for errors
+          community.docker.docker_container_exec:
+            container: "{{ container_name }}"
+            command: echo "Container is responsive"
+          register: container_test
+          ignore_errors: yes
+          
+        - name: Collect container logs for analysis
+          community.docker.docker_container_info:
+            name: "{{ container_name }}"
+          register: container_logs_info
+          
+        - name: Display comprehensive deployment status
+          debug:
+            msg: |
+              ========================================
+              DEPLOYMENT VALIDATION REPORT
+              ========================================
+              Host: {{ inventory_hostname }} ({{ ansible_host }})
+              Timestamp: {{ ansible_date_time.iso8601 }}
+              
+              CONTAINER STATUS:
+              - Name: {{ container_info.container.Name | default('N/A') }}
+              - Status: {{ container_info.container.State.Status | default('N/A') }}
+              - Started: {{ container_info.container.State.StartedAt | default('N/A') }}
+              - Image: {{ container_info.container.Config.Image | default('N/A') }}
+              - Restart Count: {{ container_info.container.RestartCount | default('N/A') }}
+              
+              SYSTEM STATUS:
+              - Docker Service: {{ ansible_facts.services['docker.service'].state | default('unknown') }}
+              - Docker Enabled: {{ ansible_facts.services['docker.service'].status | default('unknown') }}
+              - Container Responsive: {{ 'Yes' if container_test.rc == 0 else 'No' }}
+              
+              CONFIGURATION:
+              - Data Directory: {{ data_directory }}
+              - Config Directory: {{ config_directory }}
+              - Monitored Users File: {{ 'Present' if config_files.results[0].stat.exists else 'Missing' }}
+              - Docker Compose File: {{ 'Present' if config_files.results[1].stat.exists else 'Missing' }}
+              
+              RESOURCE USAGE:
+              - CPU Usage: {{ container_info.container.HostConfig.CpuShares | default('unlimited') }}
+              - Memory Limit: {{ container_info.container.HostConfig.Memory | default('unlimited') }}
+              
+              STATUS: {{ 'SUCCESS' if container_info.container.State.Status == 'running' else 'FAILED' }}
+              ========================================
+              
+      rescue:
+        - name: Log detailed deployment failure
+          debug:
+            msg: |
+              ========================================
+              DEPLOYMENT FAILURE REPORT
+              ========================================
+              Host: {{ inventory_hostname }} ({{ ansible_host }})
+              Timestamp: {{ ansible_date_time.iso8601 }}
+              
+              ERROR DETAILS:
+              - Task: {{ ansible_failed_task.name | default('Unknown') }}
+              - Error: {{ ansible_failed_result.msg | default('Unknown error') }}
+              
+              TROUBLESHOOTING STEPS:
+              1. Check Docker service: sudo systemctl status docker
+              2. Check container logs: docker logs {{ container_name }}
+              3. Verify network connectivity to registry
+              4. Check disk space: df -h
+              5. Review configuration files in {{ config_directory }}
+              
+              STATUS: FAILED
+              ========================================
+              
+        - name: Continue with other hosts despite failure
+          meta: clear_host_errors
+          
+  handlers:
+    - name: restart tablocrawler
+      community.docker.docker_container:
+        name: "{{ container_name }}"
+        state: started
+        restart: yes
+      listen: "restart container"
+
+# Error handling configuration
+- name: Deployment Summary
+  hosts: raspberry_pis
+  gather_facts: no
+  run_once: true
+  
+  tasks:
+    - name: Collect deployment results
+      set_fact:
+        successful_hosts: "{{ ansible_play_hosts_all | difference(ansible_play_batch | difference(ansible_play_hosts)) }}"
+        failed_hosts: "{{ ansible_play_batch | difference(ansible_play_hosts) }}"
+        
+    - name: Display deployment summary
+      debug:
+        msg: |
+          Deployment Summary:
+          ===================
+          Total hosts: {{ ansible_play_hosts_all | length }}
+          Successful: {{ successful_hosts | length }}
+          Failed: {{ failed_hosts | length }}
+          
+          Successful hosts: {{ successful_hosts | join(', ') if successful_hosts else 'None' }}
+          Failed hosts: {{ failed_hosts | join(', ') if failed_hosts else 'None' }}

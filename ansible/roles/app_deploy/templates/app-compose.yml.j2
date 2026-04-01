@@ -1,0 +1,16 @@
+services:
+  app:
+    image: {{ image_repository }}:{{ image_tag }}
+    container_name: {{ container_name }}
+    restart: {{ restart_policy }}
+    env_file:
+      - ./.env
+    ports:
+      - "{{ host_port }}:{{ app_port }}"
+    labels:
+      com.centurylinklabs.watchtower.enable: "{{ watchtower_enabled|lower }}"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:{{ app_port }}/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

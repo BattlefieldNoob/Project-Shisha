@@ -1,0 +1,9 @@
+---
+# Handlers for docker-auth role
+
+- name: restart docker
+  ansible.builtin.systemd:
+    name: docker
+    state: restarted
+  become: yes
+  listen: restart docker

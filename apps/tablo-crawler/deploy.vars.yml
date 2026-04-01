@@ -1,0 +1,2 @@
+# Deployment strategy for tablo-crawler
+strategy: "safe"

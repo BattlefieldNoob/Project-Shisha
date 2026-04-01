@@ -1,0 +1,124 @@
+---
+# Docker installation role for ARM64 Raspberry Pi devices
+# Supports Raspberry Pi OS and Ubuntu distributions
+
+- name: Gather distribution facts
+  ansible.builtin.setup:
+    gather_subset:
+      - distribution
+
+- name: Update package cache (Debian/Ubuntu)
+  ansible.builtin.apt:
+    update_cache: yes
+    cache_valid_time: 3600
+  when: ansible_os_family == "Debian"
+  become: yes
+
+- name: Install required packages for Docker installation
+  ansible.builtin.apt:
+    name:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - gnupg
+      - lsb-release
+      - python3-pip
+    state: present
+  when: ansible_os_family == "Debian"
+  become: yes
+
+- name: Add Docker GPG key (Debian/Ubuntu)
+  ansible.builtin.apt_key:
+    url: https://download.docker.com/linux/{{ ansible_distribution | lower }}/gpg
+    state: present
+  when: ansible_os_family == "Debian"
+  become: yes
+
+- name: Add Docker repository (Ubuntu)
+  ansible.builtin.apt_repository:
+    repo: "deb [arch=arm64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+    state: present
+  when: ansible_distribution == "Ubuntu"
+  become: yes
+
+- name: Add Docker repository (Raspberry Pi OS/Debian)
+  ansible.builtin.apt_repository:
+    repo: "deb [arch=arm64] https://download.docker.com/linux/debian {{ ansible_distribution_release }} stable"
+    state: present
+  when: ansible_distribution == "Debian"
+  become: yes
+
+- name: Update package cache after adding Docker repository
+  ansible.builtin.apt:
+    update_cache: yes
+  when: ansible_os_family == "Debian"
+  become: yes
+
+- name: Install Docker CE
+  ansible.builtin.apt:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
+    state: present
+  when: ansible_os_family == "Debian"
+  become: yes
+
+- name: Install Docker Python SDK for Ansible (system packages)
+  ansible.builtin.apt:
+    name:
+      - python3-docker
+      - python3-dockerpty
+    state: present
+  when: ansible_os_family == "Debian"
+  become: yes
+
+# Note: Using docker compose command instead of Python package
+# The docker-compose-plugin provides the 'docker compose' command
+
+- name: Add user to docker group
+  ansible.builtin.user:
+    name: "{{ ansible_user }}"
+    groups: docker
+    append: yes
+  become: yes
+
+- name: Start and enable Docker service
+  ansible.builtin.systemd:
+    name: docker
+    state: started
+    enabled: yes
+    daemon_reload: yes
+  become: yes
+
+- name: Verify Docker service is running
+  ansible.builtin.service_facts:
+
+- name: Check Docker service status
+  ansible.builtin.fail:
+    msg: "Docker service is not running"
+  when: ansible_facts.services['docker.service'].state != 'running'
+
+- name: Test Docker installation
+  ansible.builtin.command:
+    cmd: docker --version
+  register: docker_version
+  changed_when: false
+
+- name: Display Docker version
+  ansible.builtin.debug:
+    msg: "Docker installed successfully: {{ docker_version.stdout }}"
+
+- name: Test Docker daemon connectivity
+  ansible.builtin.command:
+    cmd: docker info
+  register: docker_info
+  changed_when: false
+  become: yes
+
+- name: Verify Docker is working
+  ansible.builtin.debug:
+    msg: "Docker daemon is accessible and working"
+  when: docker_info.rc == 0

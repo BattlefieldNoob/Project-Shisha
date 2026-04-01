@@ -1,0 +1,25 @@
+---
+# Fuel Advisor Bot deployment variables
+
+# Application name
+app_name: fuel-advisor-bot
+
+# Docker image configuration
+docker_image: fuel-advisor-bot
+docker_tag: latest
+
+# Environment variables
+env_vars:
+  NODE_ENV: production
+  PORT: 3000
+
+# Service configuration
+service_config:
+  restart_policy: unless-stopped
+  ports:
+    - "3000:3000"
+  volumes:
+    - ./logs:/app/logs
+  environment:
+    - NODE_ENV=production
+dockerfile_strategy: safe

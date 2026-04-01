@@ -1,0 +1,108 @@
+---
+- name: Pull TabloCrawler Docker images
+  hosts: raspberry_pis
+  become: yes
+  gather_facts: no
+  strategy: free  # Enable parallel execution across hosts
+  
+  vars_files:
+    - vault.yml
+  
+  vars:
+    force_pull: "{{ force | default(true) }}"  # Force pull by default
+    
+  tasks:
+    - name: Display pull operation details
+      debug:
+        msg: |
+          Image Pull Operation on {{ inventory_hostname }}:
+          - Image: {{ docker_image }}:{{ image_tag }}
+          - Force pull: {{ force_pull }}
+
+    - name: Check current image information
+      community.docker.docker_image_info:
+        name: "{{ docker_image }}:{{ image_tag }}"
+      register: current_image_info
+      ignore_errors: yes
+      
+    - name: Display current image status
+      debug:
+        msg: |
+          Current Image Status:
+          - Exists locally: {{ current_image_info.images | length > 0 if current_image_info.images is defined else false }}
+          {% if current_image_info.images is defined and current_image_info.images | length > 0 %}
+          - Image ID: {{ current_image_info.images[0].Id }}
+          - Created: {{ current_image_info.images[0].Created }}
+          - Size: {{ (current_image_info.images[0].Size / 1024 / 1024) | round(1) }}MB
+          {% endif %}
+      when: current_image_info is defined
+      
+    - name: Pull Docker image
+      community.docker.docker_image:
+        name: "{{ docker_image }}"
+        tag: "{{ image_tag }}"
+        source: pull
+        force_source: "{{ force_pull }}"
+      register: image_pull_result
+      
+    - name: Display pull results
+      debug:
+        msg: |
+          ========================================
+          PULL RESULTS - {{ inventory_hostname }}
+          ========================================
+          Image: {{ docker_image }}:{{ image_tag }}
+          Status: {{ 'NEW IMAGE PULLED' if image_pull_result.changed else 'IMAGE UP-TO-DATE' }}
+          {% if image_pull_result.changed %}
+          New Image ID: {{ image_pull_result.image.Id | default('N/A') }}
+          {% endif %}
+          Force pull: {{ force_pull }}
+          ========================================
+          
+    - name: Check if container is using old image
+      community.docker.docker_container_info:
+        name: "{{ container_name }}"
+      register: container_info
+      ignore_errors: yes
+      
+    - name: Display container image status
+      debug:
+        msg: |
+          Container Image Status:
+          {% if container_info.exists %}
+          - Container exists: Yes
+          - Container running: {{ container_info.container.State.Status == 'running' }}
+          - Container image: {{ container_info.container.Config.Image }}
+          - Image matches: {{ container_info.container.Config.Image == (docker_image + ':' + image_tag) }}
+          {% if image_pull_result.changed %}
+          
+          ⚠️  NOTICE: New image available but container is using old image.
+          To update the container, run:
+          ansible-playbook -i inventory.yml update.yml
+          {% endif %}
+          {% else %}
+          - Container exists: No
+          {% endif %}
+      when: container_info is defined
+
+# Summary across all hosts
+- name: Pull Summary
+  hosts: raspberry_pis
+  gather_facts: no
+  run_once: true
+  
+  tasks:
+    - name: Display overall pull summary
+      debug:
+        msg: |
+          Overall Pull Summary:
+          ====================
+          Total hosts: {{ ansible_play_hosts_all | length }}
+          Successful: {{ ansible_play_hosts | length }}
+          Failed: {{ (ansible_play_hosts_all | length) - (ansible_play_hosts | length) }}
+          
+          Hosts with new images: Check individual host results above
+          
+          Next steps:
+          - Update containers: ansible-playbook -i inventory.yml update.yml
+          - Check current status: ansible-playbook -i inventory.yml validate.yml

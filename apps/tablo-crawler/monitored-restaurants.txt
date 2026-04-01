@@ -1,0 +1,41 @@
+# Monitored Restaurants Configuration
+# 
+# This file contains the list of restaurant IDs to monitor for table activity.
+# TabloCrawler will track all tables created in these restaurants and notify you
+# about new tables, participant changes, and table cancellations.
+#
+# FORMAT:
+# - One restaurant ID per line
+# - Lines starting with '#' are comments and will be ignored
+# - Empty lines are ignored
+# - Inline comments are supported using '#' after the restaurant ID
+# - Restaurant IDs are typically numeric strings
+#
+# HOW TO FIND RESTAURANT IDs:
+# 1. Visit the Tablo app or website
+# 2. Navigate to a restaurant's page
+# 3. The restaurant ID is in the URL or can be found via the API
+# 4. Use the 'users' command to verify: bun run src/index.ts users --id-ristorante <ID>
+#
+# ADDING RESTAURANTS:
+# Simply add the restaurant ID on a new line, optionally with a comment
+#
+# REMOVING RESTAURANTS:
+# Either delete the line or comment it out by adding '#' at the start
+#
+# EXAMPLES:
+# 12345  # Trattoria da Mario - Favorite Italian spot
+# 67890  # Sushi Paradise - Popular sushi restaurant
+# # 11111  # Temporarily disabled - under renovation
+#
+# ============================================================================
+# ADD YOUR MONITORED RESTAURANTS BELOW THIS LINE
+# ============================================================================
+
+75028  # Busa dei briganti
+81408  # Pasticceria graziati
+164091 # Brunch republic
+94089  # Amsterdam 
+357980 # Eroica
+87985  # Soul Kitchen
+193526 # Librosteria

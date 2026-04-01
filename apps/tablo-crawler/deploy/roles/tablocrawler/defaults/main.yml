@@ -1,0 +1,46 @@
+---
+# Default variables for TabloCrawler role
+
+# Container configuration
+docker_image: "ghcr.io/tablocrawler/tablocrawler"
+image_tag: "latest"
+container_name: "tablocrawler-monitor"
+container_restart_policy: "unless-stopped"
+
+# Directory configuration
+data_directory: "/opt/tablocrawler/data"
+config_directory: "/opt/tablocrawler/config"
+log_directory: "/opt/tablocrawler/logs"
+backup_directory: "/opt/tablocrawler/backups"
+
+# System user configuration
+tablocrawler_user: "tablocrawler"
+tablocrawler_group: "tablocrawler"
+
+# Application defaults
+default_monitoring_interval: 60
+default_days_to_scan: 10
+default_search_latitude: "45.408153"  # Padova coordinates
+default_search_longitude: "11.875273"
+default_search_radius: "4"
+default_min_participants: 2
+default_max_distance: 10.0
+
+# Deployment configuration
+backup_before_deploy: true
+validate_deployment: true
+enable_telegram: true
+log_level: "info"
+environment: "production"
+
+# Container logging
+container_log_driver: "json-file"
+container_log_max_size: "10m"
+container_log_max_file: "3"
+
+# Backup retention
+backup_retention_days: 30
+
+# Resource limits for Docker containers
+memory_limit: "256M"
+cpu_quota: "50%"

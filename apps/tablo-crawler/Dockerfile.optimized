@@ -1,0 +1,16 @@
+FROM oven/bun:latest
+
+WORKDIR /app
+
+# Copy package files
+COPY package.json .
+
+# Install dependencies
+RUN bun install --production
+
+# Copy source code
+COPY src/ ./src/
+
+EXPOSE 3000
+
+CMD ["bun", "run", "src/index.ts"]

@@ -1,0 +1,36 @@
+# Monitored Restaurants Configuration
+# Deployed by Ansible on {{ ansible_date_time.iso8601 }}
+# Host: {{ inventory_hostname }}
+# Environment: {{ environment | default('production') }}
+#
+# This file contains the list of restaurant IDs to monitor for table activity.
+# TabloCrawler will track all tables created in these restaurants and notify you
+# about new tables, participant changes, and table cancellations.
+#
+# FORMAT:
+# - One restaurant ID per line
+# - Lines starting with '#' are comments and will be ignored
+# - Empty lines are ignored
+# - Inline comments are supported using '#' after the restaurant ID
+# - Restaurant IDs are typically numeric strings
+#
+# EXAMPLES:
+# 12345  # Trattoria da Mario - favorite Italian spot
+# 67890  # Osteria del Borgo - great for groups
+# # 54321  # Temporarily disabled - under renovation
+
+{% if monitored_restaurants is defined and monitored_restaurants | length > 0 %}
+# Configured restaurants for {{ inventory_hostname }}:
+{% for restaurant in monitored_restaurants %}
+{% if restaurant.id is defined %}
+{{ restaurant.id }}{% if restaurant.name is defined %}  # {{ restaurant.name }}{% endif %}{% if restaurant.comment is defined %}  # {{ restaurant.comment }}{% endif %}
+
+{% else %}
+{{ restaurant }}
+{% endif %}
+{% endfor %}
+{% else %}
+# No restaurants configured yet
+# Add restaurant IDs below (one per line)
+
+{% endif %}

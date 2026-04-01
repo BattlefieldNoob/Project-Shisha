@@ -1,0 +1,25 @@
+---
+# Role metadata and dependencies
+
+galaxy_info:
+  author: TabloCrawler Team
+  description: Ansible role for deploying TabloCrawler containers on Raspberry Pi
+  company: 
+  license: MIT
+  min_ansible_version: 2.9
+  platforms:
+    - name: Debian
+      versions:
+        - bullseye
+        - bookworm
+    - name: Ubuntu
+      versions:
+        - focal
+        - jammy
+
+dependencies:
+  - role: docker
+    when: install_docker | default(true)
+
+collections:
+  - community.docker

@@ -1,0 +1,27 @@
+---
+- name: Deploy application
+  hosts: all
+  become: yes
+  vars:
+    app_path: ""
+  tasks:
+    - name: Include app vars
+      include_vars:
+        file: "{{ app_path }}/deploy.vars.yml"
+
+    - name: Copy compose file
+      template:
+        src: app-compose.yml.j2
+        dest: "/opt/{{ app_name }}/compose.yml"
+        mode: '0644'
+
+    - name: Copy env file
+      template:
+        src: app-env.j2
+        dest: "/opt/{{ app_name }}/{{ env_file_name }}"
+        mode: '0644'
+
+    - name: Deploy with docker compose
+      command: "docker compose -f /opt/{{ app_name }}/compose.yml up -d"
+      args:
+        chdir: "/opt/{{ app_name }}"

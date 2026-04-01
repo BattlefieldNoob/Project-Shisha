@@ -1,0 +1,8 @@
+---
+- name: Ensure basic packages are installed
+  apt:
+    name:
+      - curl
+      - wget
+      - git
+    state: present

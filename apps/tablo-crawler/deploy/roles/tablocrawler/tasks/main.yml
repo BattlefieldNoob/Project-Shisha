@@ -1,0 +1,121 @@
+---
+# TabloCrawler Container Deployment Role
+# This role manages the deployment of TabloCrawler containers on Raspberry Pi devices
+
+- name: Create tablocrawler system group
+  ansible.builtin.group:
+    name: "{{ tablocrawler_group }}"
+    system: true
+  become: true
+
+- name: Create tablocrawler system user
+  ansible.builtin.user:
+    name: "{{ tablocrawler_user }}"
+    group: "{{ tablocrawler_group }}"
+    system: true
+    shell: /bin/false
+    home: "{{ data_directory }}"
+    create_home: false
+  become: true
+
+- name: Create application directories with proper permissions
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner | default(tablocrawler_user) }}"
+    group: "{{ item.group | default(tablocrawler_group) }}"
+    mode: "{{ item.mode | default('0755') }}"
+  loop:
+    - { path: "{{ data_directory }}", mode: '0755' }
+    - { path: "{{ config_directory }}", mode: '0755' }
+    - { path: "{{ data_directory }}/backup", mode: '0755' }
+  become: true
+
+- name: Backup existing configuration
+  ansible.builtin.include_tasks: backup.yml
+  when: backup_before_deploy | default(true)
+
+- name: Deploy and template configuration files
+  ansible.builtin.include_tasks: configure.yml
+  tags:
+    - configuration
+
+- name: Stop existing TabloCrawler container
+  community.docker.docker_container:
+    name: "{{ container_name }}"
+    state: stopped
+  ignore_errors: true
+  register: container_stop_result
+
+- name: Remove existing TabloCrawler container
+  community.docker.docker_container:
+    name: "{{ container_name }}"
+    state: absent
+  ignore_errors: true
+  when: container_stop_result is succeeded
+
+- name: Pull latest TabloCrawler Docker image
+  community.docker.docker_image:
+    name: "{{ docker_image }}"
+    tag: "{{ image_tag }}"
+    source: pull
+    force_source: true
+  register: image_pull_result
+
+- name: Deploy TabloCrawler container using docker compose command
+  ansible.builtin.command:
+    cmd: docker compose -p tablocrawler up -d
+    chdir: "{{ config_directory }}"
+  become: true
+  register: container_deploy_result
+  changed_when: "'Started' in container_deploy_result.stderr or 'Created' in container_deploy_result.stderr"
+
+- name: Ensure container has proper ownership of data files
+  ansible.builtin.file:
+    path: "{{ item }}"
+    owner: "{{ tablocrawler_user }}"
+    group: "{{ tablocrawler_group }}"
+    mode: '0644'
+  loop:
+    - "{{ data_directory }}/monitored-users.txt"
+    - "{{ data_directory }}/monitoring-state.json"
+  become: true
+  ignore_errors: true
+
+- name: Wait for container to be healthy
+  community.docker.docker_container_info:
+    name: "{{ container_name }}"
+  register: container_info
+  until: container_info.container.State.Status == "running"
+  retries: 10
+  delay: 5
+  become: true
+
+- name: Verify configuration files are properly deployed
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  register: config_files_check
+  loop:
+    - "{{ config_directory }}/docker-compose.yml"
+    - "{{ data_directory }}/monitored-users.txt"
+    - "{{ data_directory }}/monitoring-state.json"
+  become: true
+
+# Systemd service management removed - using Docker only
+
+- name: Run configuration validation
+  ansible.builtin.include_tasks: validate.yml
+  when: validate_deployment | default(true)
+
+- name: Display container deployment status
+  ansible.builtin.debug:
+    msg: |
+      Container deployment completed:
+      - Container Name: {{ container_name }}
+      - Image: {{ docker_image }}:{{ image_tag }}
+      - Status: {{ container_info.container.State.Status }}
+      - Started At: {{ container_info.container.State.StartedAt }}
+      - Configuration Updated: {{ (compose_config_result is defined and compose_config_result.changed) or (env_config_result is defined and env_config_result.changed) }}
+      - Config Directory: {{ config_directory }}
+      - Data Directory: {{ data_directory }}
+      - Log Directory: {{ log_directory | default(data_directory + '/logs') }}

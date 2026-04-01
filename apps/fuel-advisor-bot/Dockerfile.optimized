@@ -1,0 +1,35 @@
+# Fuel Advisor Bot - Dockerfile (Optimized Strategy - Compiled Executable)
+FROM oven/bun:latest AS builder
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package.json bun.lock ./
+
+# Install dependencies
+RUN bun install --frozen-lockfile
+
+# Copy source code
+COPY src/ ./src/
+
+# Build the application
+RUN bun build src/index.ts --outdir dist --target node --format esm
+
+# Final stage
+FROM oven/bun:1-slim
+
+# Set working directory
+WORKDIR /app
+
+# Copy built application
+COPY --from=builder /app/dist ./dist
+
+# Copy package files
+COPY package.json ./
+
+# Expose port
+EXPOSE 3000
+
+# Start the application
+CMD ["bun", "run", "dist/index.ts"]

@@ -1,0 +1,42 @@
+---
+# Docker authentication role for GitHub Container Registry
+# This role configures Docker to authenticate with ghcr.io using GitHub Personal Access Token
+
+- name: Ensure .docker directory exists
+  ansible.builtin.file:
+    path: "{{ ansible_user_dir }}/.docker"
+    state: directory
+    mode: '0700'
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+
+- name: Create Docker authentication configuration
+  ansible.builtin.template:
+    src: docker-config.json.j2
+    dest: "{{ ansible_user_dir }}/.docker/config.json"
+    mode: '0600'
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    backup: yes
+  notify: restart docker
+
+- name: Test Docker authentication with GitHub Container Registry
+  ansible.builtin.command:
+    cmd: docker login ghcr.io --username {{ vault_github_username }} --password {{ vault_github_token }}
+  register: docker_login_result
+  failed_when: docker_login_result.rc != 0
+  changed_when: false
+  no_log: true  # Don't log credentials
+
+- name: Verify Docker can pull from GitHub Container Registry
+  ansible.builtin.command:
+    cmd: docker pull {{ docker_image }}:{{ image_tag }}
+  register: docker_pull_result
+  retries: 3
+  delay: 5
+  until: docker_pull_result.rc == 0
+  failed_when: docker_pull_result.rc != 0
+
+- name: Display authentication success message
+  ansible.builtin.debug:
+    msg: "Successfully authenticated with GitHub Container Registry and pulled image {{ docker_image }}:{{ image_tag }}"

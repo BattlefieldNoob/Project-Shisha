@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  tablocrawler:
+    image: "{{ docker_image }}:{{ image_tag }}"
+    container_name: "{{ container_name }}"
+    restart: "{{ container_restart_policy }}"
+    
+    # Run as the tablocrawler user to match file permissions
+    user: "{{ tablocrawler_uid | default('1000') }}:{{ tablocrawler_gid | default('1000') }}"
+    
+    env_file:
+      - "{{ config_directory }}/tablocrawler.env"
+    
+    volumes:
+      - "{{ data_directory }}:/app/data"
+      - "{{ config_directory }}:/app/config"
+      - "{{ log_directory | default(data_directory + '/logs') }}:/app/logs"
+    
+    command: ["watch-users"]
+    
+    # Health check to ensure container is working
+    healthcheck:
+      test: ["CMD", "test", "-f", "/app/data/monitoring-state.json"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    
+    # Watchtower labels for auto-update
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  watchtower:
+    image: containrrr/watchtower
+    container_name: watchtower
+    restart: unless-stopped
+    
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    
+    environment:
+      - TZ={{ timezone | default('Europe/Rome') }}
+      - WATCHTOWER_POLL_INTERVAL={{ watchtower_interval | default('21600') }}  # 6 hours
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_INCLUDE_RESTARTING=true
+      - WATCHTOWER_INCLUDE_STOPPED=false
+      - WATCHTOWER_REVIVE_STOPPED=false
+      - WATCHTOWER_LABEL_ENABLE=true
+      - WATCHTOWER_DEBUG={{ 'true' if watchtower_debug | default(false) else 'false' }}
+{% if vault_telegram_bot_token is defined and vault_telegram_chat_id is defined %}
+      - WATCHTOWER_NOTIFICATIONS=shoutrrr
+      - WATCHTOWER_NOTIFICATION_URL=telegram://{{ vault_telegram_bot_token }}@telegram?chats={{ vault_telegram_chat_id }}
+{% endif %}
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"

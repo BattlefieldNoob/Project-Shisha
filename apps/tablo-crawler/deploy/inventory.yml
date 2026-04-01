@@ -1,0 +1,81 @@
+---
+# Ansible Inventory for TabloCrawler Raspberry Pi Deployment
+# Single Raspberry Pi development environment
+
+all:
+  children:
+    raspberry_pis:
+      children:
+        development:
+          hosts:
+            pi-dev:
+              ansible_host: 192.168.1.104
+              ansible_user: antonio
+              ansible_ssh_private_key_file: ~/.ssh/id_ed25519
+              location: "development"
+              monitoring_interval: 300
+              search_radius: "15"
+              days_to_scan: 10
+              search_latitude: "45.408153"
+              search_longitude: "11.875273"
+              
+      vars:
+        # Common Ansible connection settings
+        ansible_python_interpreter: /usr/bin/python3
+        ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
+        ansible_ssh_pipelining: true
+        
+        # Docker configuration
+        docker_image: "ghcr.io/tablocrawler/tablocrawler"
+        container_name: "tablocrawler-monitor"
+        
+        # Default application settings
+        default_monitoring_interval: 60
+        default_days_to_scan: 10
+        default_search_latitude: "45.408153"
+        default_search_longitude: "11.875273"
+        default_search_radius: "4"
+        default_min_participants: 2
+        default_max_distance: 10.0
+        
+        # Container configuration
+        container_restart_policy: "unless-stopped"
+        container_log_driver: "json-file"
+        container_log_max_size: "10m"
+        container_log_max_file: "3"
+        
+        # System configuration
+        data_directory: "/opt/tablocrawler/data"
+        config_directory: "/opt/tablocrawler/config"
+        log_directory: "/opt/tablocrawler/logs"
+        backup_directory: "/opt/tablocrawler/backups"
+        
+        # Watchtower configuration
+        watchtower_interval: "600"  # Check every 10 minutes (in seconds)
+        watchtower_debug: false
+        timezone: "Europe/Rome"
+        
+    # Environment-specific variable overrides
+    production:
+      vars:
+        environment: "production"
+        image_tag: "latest"
+        log_level: "info"
+        enable_telegram: true
+        backup_retention_days: 30
+        
+    staging:
+      vars:
+        environment: "staging"
+        image_tag: "staging"
+        log_level: "debug"
+        enable_telegram: true
+        backup_retention_days: 7
+        
+    development:
+      vars:
+        environment: "development"
+        image_tag: "dev"
+        log_level: "debug"
+        enable_telegram: true
+        backup_retention_days: 3

@@ -1,0 +1,16 @@
+{
+  "name": "personal-platform",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:fuel-advisor-bot": "bun run --cwd apps/fuel-advisor-bot dev",
+    "dev:tablo-crawler": "bun run --cwd apps/tablo-crawler dev",
+    "build:fuel-advisor-bot": "bun run --cwd apps/fuel-advisor-bot build",
+    "build:tablo-crawler": "bun run --cwd apps/tablo-crawler build",
+    "test:fuel-advisor-bot": "bun run --cwd apps/fuel-advisor-bot test",
+    "test:tablo-crawler": "bun run --cwd apps/tablo-crawler test"
+  }
+}

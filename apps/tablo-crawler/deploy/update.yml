@@ -1,0 +1,263 @@
+---
+- name: Update TabloCrawler image and configuration
+  hosts: raspberry_pis
+  become: yes
+  gather_facts: yes
+  
+  vars_files:
+    - vault.yml
+  
+  vars:
+    force_pull: "{{ pull | default(false) }}"  # Set to true to force image pull
+    restart_container: "{{ restart | default(true) }}"  # Set to false to skip restart
+    update_config: "{{ config | default(true) }}"  # Set to false to skip config update
+    
+  pre_tasks:
+    - name: Verify host connectivity
+      ping:
+      register: ping_result
+      
+    - name: Display update operation details
+      debug:
+        msg: |
+          Update Operation on {{ inventory_hostname }}:
+          - Image: {{ docker_image }}:{{ image_tag }}
+          - Force pull: {{ force_pull }}
+          - Update config: {{ update_config }}
+          - Restart container: {{ restart_container }}
+
+  tasks:
+    - name: Get current container information
+      community.docker.docker_container_info:
+        name: "{{ container_name }}"
+      register: current_container
+      ignore_errors: yes
+      
+    - name: Display current container status
+      debug:
+        msg: |
+          Current Container Status:
+          - Exists: {{ current_container.exists | default(false) }}
+          - Running: {{ current_container.container.State.Status == 'running' if current_container.exists else false }}
+          - Current Image: {{ current_container.container.Config.Image if current_container.exists else 'N/A' }}
+          - Started: {{ current_container.container.State.StartedAt if current_container.exists else 'N/A' }}
+      when: current_container is defined
+      
+    - name: Pull latest Docker image
+      community.docker.docker_image:
+        name: "{{ docker_image }}"
+        tag: "{{ image_tag }}"
+        source: pull
+        force_source: "{{ force_pull }}"
+      register: image_pull_result
+      tags:
+        - image
+        - pull
+        
+    - name: Display image pull results
+      debug:
+        msg: |
+          Image Pull Results:
+          - Image: {{ docker_image }}:{{ image_tag }}
+          - Action: {{ 'PULLED' if image_pull_result.changed else 'UP-TO-DATE' }}
+          {% if image_pull_result.changed %}
+          - New Image ID: {{ image_pull_result.image.Id | default('N/A') }}
+          {% endif %}
+      tags:
+        - image
+        - pull
+
+    - name: Update configuration files
+      block:
+        - name: Get tablocrawler user information
+          ansible.builtin.getent:
+            database: passwd
+            key: "{{ tablocrawler_user }}"
+          register: tablocrawler_user_info
+          
+        - name: Set user ID and group ID facts
+          ansible.builtin.set_fact:
+            tablocrawler_uid: "{{ tablocrawler_user_info.ansible_facts.getent_passwd[tablocrawler_user][1] }}"
+            tablocrawler_gid: "{{ tablocrawler_user_info.ansible_facts.getent_passwd[tablocrawler_user][2] }}"
+            
+        - name: Update docker-compose configuration
+          ansible.builtin.template:
+            src: docker-compose.yml.j2
+            dest: "{{ config_directory }}/docker-compose.yml"
+            owner: "{{ tablocrawler_user }}"
+            group: "{{ tablocrawler_group }}"
+            mode: '0644'
+            backup: true
+          register: compose_update_result
+          
+        - name: Update environment configuration
+          ansible.builtin.template:
+            src: tablocrawler.env.j2
+            dest: "{{ config_directory }}/tablocrawler.env"
+            owner: "{{ tablocrawler_user }}"
+            group: "{{ tablocrawler_group }}"
+            mode: '0600'
+            backup: true
+          register: env_update_result
+          
+        - name: Copy/update monitored users file
+          ansible.builtin.copy:
+            src: "{{ monitored_users_file | default('../monitored-users.txt') }}"
+            dest: "{{ data_directory }}/monitored-users.txt"
+            owner: "{{ tablocrawler_user }}"
+            group: "{{ tablocrawler_group }}"
+            mode: '0644'
+            backup: true
+          when: monitored_users_file is defined or (monitored_users_file | default('../monitored-users.txt')) is file
+          register: users_file_update_result
+          
+        - name: Display configuration update results
+          debug:
+            msg: |
+              Configuration Update Results:
+              - Docker Compose: {{ 'UPDATED' if compose_update_result.changed else 'UNCHANGED' }}
+              - Environment: {{ 'UPDATED' if env_update_result.changed else 'UNCHANGED' }}
+              - Monitored Users: {{ 'UPDATED' if users_file_update_result.changed | default(false) else 'UNCHANGED' }}
+              
+      when: update_config | bool
+      tags:
+        - configuration
+        - config
+
+    - name: Container management
+      block:
+        - name: Stop existing container for update
+          community.docker.docker_container:
+            name: "{{ container_name }}"
+            state: stopped
+          when: current_container.exists and restart_container | bool
+          register: container_stop_result
+          
+        - name: Remove old container if image changed
+          community.docker.docker_container:
+            name: "{{ container_name }}"
+            state: absent
+          when: image_pull_result.changed and restart_container | bool
+          register: container_remove_result
+          
+        - name: Start updated container
+          ansible.builtin.command:
+            cmd: docker compose -p tablocrawler up -d
+            chdir: "{{ config_directory }}"
+          when: restart_container | bool
+          register: container_start_result
+          
+        - name: Wait for container to be ready
+          pause:
+            seconds: 10
+          when: restart_container | bool
+          
+        - name: Verify container is running
+          community.docker.docker_container_info:
+            name: "{{ container_name }}"
+          register: updated_container_info
+          when: restart_container | bool
+          
+        - name: Display container update results
+          debug:
+            msg: |
+              Container Update Results:
+              {% if restart_container | bool %}
+              - Container stopped: {{ 'YES' if container_stop_result.changed | default(false) else 'NO' }}
+              - Container removed: {{ 'YES' if container_remove_result.changed | default(false) else 'NO' }}
+              - Container started: {{ 'YES' if container_start_result.changed | default(false) else 'NO' }}
+              - Final status: {{ updated_container_info.container.State.Status if updated_container_info.exists else 'NOT FOUND' }}
+              - New image in use: {{ updated_container_info.container.Config.Image if updated_container_info.exists else 'N/A' }}
+              {% else %}
+              - Container restart: SKIPPED (restart=false)
+              {% endif %}
+          when: restart_container | bool
+          
+      when: restart_container | bool
+      tags:
+        - container
+        - restart
+
+    - name: Post-update validation
+      block:
+        - name: Check container health
+          community.docker.docker_container_info:
+            name: "{{ container_name }}"
+          register: final_container_status
+          
+        - name: Get recent container logs
+          shell: "docker logs --tail 20 {{ container_name }}"
+          register: update_logs
+          ignore_errors: yes
+          
+        - name: Display post-update status
+          debug:
+            msg: |
+              ========================================
+              UPDATE SUMMARY - {{ inventory_hostname }}
+              ========================================
+              Timestamp: {{ ansible_date_time.iso8601 }}
+              
+              IMAGE UPDATE:
+              - Image: {{ docker_image }}:{{ image_tag }}
+              - Pull result: {{ 'NEW IMAGE' if image_pull_result.changed else 'NO CHANGE' }}
+              
+              CONFIGURATION:
+              {% if update_config | bool %}
+              - Docker Compose: {{ 'UPDATED' if compose_update_result.changed else 'UNCHANGED' }}
+              - Environment: {{ 'UPDATED' if env_update_result.changed else 'UNCHANGED' }}
+              - Monitored Users: {{ 'UPDATED' if users_file_update_result.changed | default(false) else 'UNCHANGED' }}
+              {% else %}
+              - Configuration update: SKIPPED
+              {% endif %}
+              
+              CONTAINER STATUS:
+              {% if restart_container | bool %}
+              - Status: {{ final_container_status.container.State.Status if final_container_status.exists else 'NOT FOUND' }}
+              - Image: {{ final_container_status.container.Config.Image if final_container_status.exists else 'N/A' }}
+              - Started: {{ final_container_status.container.State.StartedAt if final_container_status.exists else 'N/A' }}
+              {% else %}
+              - Container restart: SKIPPED
+              {% endif %}
+              
+              RECENT LOGS:
+              {{ update_logs.stdout if update_logs.stdout else 'No logs available' }}
+              {% if update_logs.stderr %}
+              
+              ERRORS:
+              {{ update_logs.stderr }}
+              {% endif %}
+              ========================================
+              
+      tags:
+        - validation
+        - summary
+
+  handlers:
+    - name: restart tablocrawler container
+      ansible.builtin.command:
+        cmd: docker compose -p tablocrawler up -d
+        chdir: "{{ config_directory }}"
+
+# Summary across all hosts
+- name: Update Summary
+  hosts: raspberry_pis
+  gather_facts: no
+  run_once: true
+  
+  tasks:
+    - name: Display overall update summary
+      debug:
+        msg: |
+          Overall Update Summary:
+          ======================
+          Total hosts: {{ ansible_play_hosts_all | length }}
+          Successful: {{ ansible_play_hosts | length }}
+          Failed: {{ (ansible_play_hosts_all | length) - (ansible_play_hosts | length) }}
+          
+          Updated hosts: {{ ansible_play_hosts | join(', ') if ansible_play_hosts else 'None' }}
+          
+          Next steps:
+          - Check logs: ansible-playbook -i inventory.yml logs.yml
+          - Full validation: ansible-playbook -i inventory.yml validate.yml
+          - Troubleshoot issues: ansible-playbook -i inventory.yml troubleshoot.yml

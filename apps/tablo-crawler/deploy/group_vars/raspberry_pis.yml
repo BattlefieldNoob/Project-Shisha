@@ -1,0 +1,32 @@
+# Common variables for all Raspberry Pi devices
+---
+# Docker configuration
+github_repo: "tablo-crawler"  # Default image name
+github_user: "battlefieldnoob"
+docker_image: "ghcr.io/{{ github_user | default('your-org') }}/{{ github_repo | default('tablo-crawler') }}"
+image_tag: "{{ ansible_env.IMAGE_TAG | default('latest') }}"
+container_name: "tablocrawler-monitor"
+
+# Application configuration defaults
+default_monitoring_interval: 60
+default_days_to_scan: 10
+default_search_latitude: "45.408153"  # Padova coordinates
+default_search_longitude: "11.875273"
+default_search_radius: "4"
+default_min_participants: 2
+
+# Container configuration
+container_restart_policy: "unless-stopped"
+data_directory: "/opt/tablocrawler/data"
+config_directory: "/opt/tablocrawler/config"
+
+# System configuration
+tablocrawler_user: "tablocrawler"
+tablocrawler_group: "tablocrawler"
+
+# Docker container resource limits
+memory_limit: "256M"
+cpu_quota: "50%"
+
+# Python interpreter for Ansible
+ansible_python_interpreter: /usr/bin/python3

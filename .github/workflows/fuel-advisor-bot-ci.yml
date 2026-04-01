@@ -1,0 +1,13 @@
+name: Build and Push Fuel Advisor Bot
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'apps/fuel-advisor-bot/**'
+
+jobs:
+  build:
+    uses: ./.github/workflows/app-ci.yml
+    with:
+      app-name: fuel-advisor-bot

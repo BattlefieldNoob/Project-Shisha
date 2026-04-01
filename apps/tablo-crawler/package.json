@@ -1,0 +1,16 @@
+{
+  "name": "tablo-crawler",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "bun run src/index.ts",
+    "build": "bun build src/index.ts --compile --outfile dist/index",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "bun": "^1.0.0",
+    "commander": "^12.1.0"
+  },
+  "devDependencies": {
+    "bun-types": "latest"
+  }
+}

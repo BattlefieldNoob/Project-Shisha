@@ -1,0 +1,122 @@
+{
+    "project": {
+        "name": "TabloCrawler Operations Runbook",
+        "version": "1.0.0",
+        "description": "Interactive operations runbook for TabloCrawler development and deployment",
+        "repository": "https://github.com/your-org/tabloCrawler",
+        "documentation": "https://docs.your-org.com/tabloCrawler"
+    },
+    "runme": {
+        "version": "3.0.0",
+        "features": {
+            "interactive": true,
+            "parameterPrompting": true,
+            "environmentVariables": true,
+            "sessionManagement": true,
+            "commandValidation": true
+        }
+    },
+    "environments": {
+        "development": {
+            "description": "Local development environment",
+            "requiredVars": [
+                "TABLO_AUTH_TOKEN"
+            ],
+            "optionalVars": [
+                "TELEGRAM_BOT_TOKEN",
+                "TELEGRAM_CHAT_ID",
+                "DEBUG"
+            ]
+        },
+        "staging": {
+            "description": "Staging environment on Raspberry Pi",
+            "requiredVars": [
+                "TABLO_AUTH_TOKEN",
+                "SSH_HOST",
+                "SSH_USER"
+            ],
+            "optionalVars": [
+                "ANSIBLE_VAULT_PASSWORD_FILE"
+            ]
+        },
+        "production": {
+            "description": "Production environment on Raspberry Pi",
+            "requiredVars": [
+                "TABLO_AUTH_TOKEN",
+                "SSH_HOST",
+                "SSH_USER",
+                "ANSIBLE_VAULT_PASSWORD_FILE"
+            ],
+            "optionalVars": [
+                "TELEGRAM_BOT_TOKEN",
+                "TELEGRAM_CHAT_ID"
+            ]
+        }
+    },
+    "commands": {
+        "categories": {
+            "development": {
+                "color": "green",
+                "icon": "🔧",
+                "description": "Local development and testing commands"
+            },
+            "deployment": {
+                "color": "blue",
+                "icon": "🚀",
+                "description": "Deployment and infrastructure management"
+            },
+            "monitoring": {
+                "color": "yellow",
+                "icon": "📊",
+                "description": "Monitoring, logging, and maintenance"
+            },
+            "emergency": {
+                "color": "red",
+                "icon": "🚨",
+                "description": "Emergency procedures and rollback operations"
+            }
+        },
+        "safety": {
+            "destructiveOperations": [
+                "docker system prune",
+                "rm -rf",
+                "ansible-playbook.*--tags.*stop",
+                "systemctl stop",
+                "kill -9"
+            ],
+            "confirmationRequired": true,
+            "warningMessage": "⚠️  This operation may affect running services or data"
+        }
+    },
+    "integrations": {
+        "vscode": {
+            "extensionId": "stateful.runme",
+            "settings": {
+                "runme.enableAnnotations": true,
+                "runme.enableCodeLens": true,
+                "runme.enableHover": true
+            }
+        },
+        "ansible": {
+            "playbookPath": "deploy/",
+            "inventoryFile": "deploy/inventory.yml",
+            "vaultFile": "deploy/vault.yml"
+        },
+        "docker": {
+            "composeFile": "docker-compose.yml",
+            "registryUrl": "ghcr.io"
+        }
+    },
+    "validation": {
+        "commandSyntax": true,
+        "environmentChecks": true,
+        "prerequisiteValidation": true,
+        "postExecutionValidation": true
+    },
+    "documentation": {
+        "fallbackMarkdown": "RUNBOOK.md",
+        "autoGenerate": true,
+        "includeTableOfContents": true,
+        "crossReferences": true
+    }
+}

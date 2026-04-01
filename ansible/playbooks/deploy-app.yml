@@ -1,0 +1,10 @@
+---
+- name: Deploy application
+  hosts: all
+  become: yes
+  vars:
+    app_path: ""
+  tasks:
+    - name: Include app vars
+      include_vars:
+        file: "{{ app_path }}/deploy.vars.yml"

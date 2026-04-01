@@ -1,0 +1,73 @@
+---
+# TabloCrawler Log Viewer
+# 
+# Usage examples:
+#   # View last 50 lines (default)
+#   ansible-playbook -i inventory.yml logs.yml
+#   
+#   # View last 100 lines
+#   ansible-playbook -i inventory.yml logs.yml -e lines=100
+#   
+#   # Follow logs in real-time (use Ctrl+C to stop)
+#   ansible-playbook -i inventory.yml logs.yml -e follow=true
+#   
+#   # Target specific host
+#   ansible-playbook -i inventory.yml logs.yml --limit pi4-001
+
+- name: View TabloCrawler logs on Raspberry Pi devices
+  hosts: raspberry_pis
+  become: yes
+  gather_facts: no
+  
+  vars:
+    log_lines: "{{ lines | default(50) }}"  # Default to last 50 lines
+    follow_logs: "{{ follow | default(false) }}"  # Set to true to follow logs in real-time
+    
+  tasks:
+    - name: Check if container exists
+      community.docker.docker_container_info:
+        name: "{{ container_name }}"
+      register: container_info
+      
+    - name: Display container status
+      debug:
+        msg: |
+          Container Status on {{ inventory_hostname }}:
+          - Name: {{ container_info.container.Name | default('N/A') }}
+          - Status: {{ container_info.container.State.Status | default('N/A') }}
+          - Started: {{ container_info.container.State.StartedAt | default('N/A') }}
+          - Restart Count: {{ container_info.container.RestartCount | default('N/A') }}
+      when: container_info.exists
+      
+    - name: Fail if container doesn't exist
+      fail:
+        msg: "Container {{ container_name }} does not exist on {{ inventory_hostname }}"
+      when: not container_info.exists
+      
+    - name: Get container logs (static)
+      shell: "docker logs --tail {{ log_lines }} --timestamps {{ container_name }}"
+      register: container_logs
+      when: container_info.exists and not follow_logs
+      
+    - name: Display container logs header
+      debug:
+        msg: "========== LOGS FROM {{ inventory_hostname }} - Container: {{ container_name }} =========="
+      when: container_info.exists and not follow_logs
+      
+    - name: Display container logs (clean output)
+      debug:
+        var: container_logs.stdout_lines
+      when: container_info.exists and not follow_logs and container_logs.stdout_lines is defined
+      
+    - name: Display container errors (if any)
+      debug:
+        msg: "STDERR: {{ container_logs.stderr }}"
+      when: container_info.exists and not follow_logs and container_logs.stderr
+      
+    - name: Follow logs in real-time
+      shell: |
+        echo "========== FOLLOWING LOGS FROM {{ inventory_hostname }} - Container: {{ container_name }} =========="
+        echo "Press Ctrl+C to stop following logs"
+        docker logs -f --timestamps {{ container_name }}
+      when: container_info.exists and follow_logs
+      ignore_errors: yes

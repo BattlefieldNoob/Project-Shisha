@@ -1,0 +1,23 @@
+---
+# Handlers for TabloCrawler role
+# These handlers are triggered when configuration changes occur
+
+- name: restart tablocrawler container
+  ansible.builtin.command:
+    cmd: docker compose -p tablocrawler up -d --force-recreate
+    chdir: "{{ config_directory }}"
+  become: true
+  listen: "restart tablocrawler container"
+
+- name: reload tablocrawler configuration
+  community.docker.docker_container:
+    name: "{{ container_name }}"
+    restart: true
+  become: true
+  listen: "reload tablocrawler configuration"
+
+- name: validate configuration
+  ansible.builtin.include_tasks: validate.yml
+  listen: "validate configuration"
+
+# Systemd handlers removed - using Docker only

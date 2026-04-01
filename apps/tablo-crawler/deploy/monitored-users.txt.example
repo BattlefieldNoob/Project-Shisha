@@ -1,0 +1,11 @@
+# Example monitored-users.txt file
+# Copy this file to monitored-users.txt and add your user IDs
+# Format: one user ID per line, comments start with #
+
+# Example user IDs (replace with actual IDs):
+# 12345
+# 67890
+# 98765
+
+# You can get user IDs from the Tablo app or API
+# Each line should contain only the numeric user ID

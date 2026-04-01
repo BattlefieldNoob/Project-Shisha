@@ -1,0 +1,21 @@
+# Example monitored-restaurants.txt file
+# Copy this file to monitored-restaurants.txt and add your restaurant IDs
+# Format: one restaurant ID per line, comments start with #
+
+# TabloCrawler will track all tables created in these restaurants and notify you
+# about new tables, participant changes, and table cancellations.
+
+# Example restaurant IDs (replace with actual IDs):
+# 12345  # Trattoria da Mario - favorite Italian spot
+# 67890  # Osteria del Borgo - great for groups
+# 54321  # Pizzeria Napoli
+
+# You can get restaurant IDs from:
+# 1. The Tablo app or website (check the URL)
+# 2. Using the 'users' command: bun run src/index.ts users --id-ristorante <ID>
+# 3. From API responses when scanning tables
+
+# Each line should contain only the numeric restaurant ID
+# Lines starting with # are comments and will be ignored
+# Empty lines are ignored
+# Inline comments are supported: 12345  # My favorite restaurant

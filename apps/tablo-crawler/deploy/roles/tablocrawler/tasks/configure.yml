@@ -1,0 +1,337 @@
+---
+# Configuration deployment tasks for TabloCrawler
+# This file handles templating and deployment of all configuration files
+
+- name: Get tablocrawler user information
+  ansible.builtin.getent:
+    database: passwd
+    key: "{{ tablocrawler_user }}"
+  register: tablocrawler_user_info
+  become: true
+  tags:
+    - configuration
+    - user-info
+
+- name: Set user ID and group ID facts
+  ansible.builtin.set_fact:
+    tablocrawler_uid: "{{ tablocrawler_user_info.ansible_facts.getent_passwd[tablocrawler_user][1] }}"
+    tablocrawler_gid: "{{ tablocrawler_user_info.ansible_facts.getent_passwd[tablocrawler_user][2] }}"
+  tags:
+    - configuration
+    - user-info
+
+- name: Create configuration directories with proper permissions
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner | default(tablocrawler_user) }}"
+    group: "{{ item.group | default(tablocrawler_group) }}"
+    mode: "{{ item.mode | default('0755') }}"
+  loop:
+    - { path: "{{ config_directory }}", mode: '0755' }
+    - { path: "{{ data_directory }}", mode: '0755' }
+    - { path: "{{ log_directory | default(data_directory + '/logs') }}", mode: '0755' }
+    - { path: "{{ backup_directory | default(data_directory + '/backup') }}", mode: '0755' }
+  become: true
+  tags:
+    - configuration
+    - directories
+
+- name: Template docker-compose configuration
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ config_directory }}/docker-compose.yml"
+    owner: "{{ tablocrawler_user }}"
+    group: "{{ tablocrawler_group }}"
+    mode: '0644'
+    backup: true
+  become: true
+  register: compose_config_result
+  notify:
+    - restart tablocrawler container
+  tags:
+    - configuration
+    - docker-compose
+
+- name: Template environment configuration file
+  ansible.builtin.template:
+    src: tablocrawler.env.j2
+    dest: "{{ config_directory }}/tablocrawler.env"
+    owner: "{{ tablocrawler_user }}"
+    group: "{{ tablocrawler_group }}"
+    mode: '0600'  # Sensitive file with secrets
+    backup: true
+  become: true
+  register: env_config_result
+  notify:
+    - restart tablocrawler container
+  tags:
+    - configuration
+    - environment
+
+- name: Template logging configuration
+  ansible.builtin.template:
+    src: logging.conf.j2
+    dest: "{{ config_directory }}/logging.conf"
+    owner: "{{ tablocrawler_user }}"
+    group: "{{ tablocrawler_group }}"
+    mode: '0644'
+    backup: true
+  become: true
+  register: logging_config_result
+  notify:
+    - restart tablocrawler container
+  tags:
+    - configuration
+    - logging
+
+- name: Copy monitored users file from local source
+  ansible.builtin.copy:
+    src: "{{ monitored_users_file | default('../monitored-users.txt') }}"
+    dest: "{{ data_directory }}/monitored-users.txt"
+    owner: "{{ tablocrawler_user }}"
+    group: "{{ tablocrawler_group }}"
+    mode: '0644'
+    backup: true
+  become: true
+  when: monitored_users_file is defined or monitored_users_file_path is defined or (monitored_users_file | default('../monitored-users.txt')) is file
+  register: monitored_users_copy_result
+  tags:
+    - configuration
+    - data-files
+    - monitored-users
+
+- name: Create monitored users file from content variable
+  ansible.builtin.copy:
+    content: "{{ monitored_users_content }}"
+    dest: "{{ data_directory }}/monitored-users.txt"
+    owner: "{{ tablocrawler_user }}"
+    group: "{{ tablocrawler_group }}"
+    mode: '0644'
+    backup: true
+  become: true
+  when: monitored_users_content is defined
+  register: monitored_users_content_result
+  tags:
+    - configuration
+    - data-files
+    - monitored-users
+
+- name: Create monitored users file from template
+  ansible.builtin.template:
+    src: "{{ monitored_users_template | default('monitored-users.txt.j2') }}"
+    dest: "{{ data_directory }}/monitored-users.txt"
+    owner: "{{ tablocrawler_user }}"
+    group: "{{ tablocrawler_group }}"
+    mode: '0644'
+    backup: true
+  become: true
+  when: monitored_users_template is defined and monitored_users_content is not defined
+  register: monitored_users_template_result
+  tags:
+    - configuration
+    - data-files
+    - monitored-users
+
+- name: Create empty monitored users file if no source provided
+  ansible.builtin.file:
+    path: "{{ data_directory }}/monitored-users.txt"
+    state: touch
+    owner: "{{ tablocrawler_user }}"
+    group: "{{ tablocrawler_group }}"
+    mode: '0644'
+    modification_time: preserve
+    access_time: preserve
+  become: true
+  when: >
+    monitored_users_content is not defined and
+    monitored_users_template is not defined and
+    not (monitored_users_file is defined or monitored_users_file_path is defined or (monitored_users_file | default('../monitored-users.txt')) is file)
+  tags:
+    - configuration
+    - data-files
+    - monitored-users
+
+- name: Copy monitored restaurants file from local source
+  ansible.builtin.copy:
+    src: "{{ monitored_restaurants_file | default('../monitored-restaurants.txt') }}"
+    dest: "{{ data_directory }}/monitored-restaurants.txt"
+    owner: "{{ tablocrawler_user }}"
+    group: "{{ tablocrawler_group }}"
+    mode: '0644'
+    backup: true
+  become: true
+  when: monitored_restaurants_file is defined or monitored_restaurants_file_path is defined or (monitored_restaurants_file | default('../monitored-restaurants.txt')) is file
+  register: monitored_restaurants_copy_result
+  tags:
+    - configuration
+    - data-files
+    - monitored-restaurants
+
+- name: Create monitored restaurants file from content variable
+  ansible.builtin.copy:
+    content: "{{ monitored_restaurants_content }}"
+    dest: "{{ data_directory }}/monitored-restaurants.txt"
+    owner: "{{ tablocrawler_user }}"
+    group: "{{ tablocrawler_group }}"
+    mode: '0644'
+    backup: true
+  become: true
+  when: monitored_restaurants_content is defined
+  register: monitored_restaurants_content_result
+  tags:
+    - configuration
+    - data-files
+    - monitored-restaurants
+
+- name: Create monitored restaurants file from template
+  ansible.builtin.template:
+    src: "{{ monitored_restaurants_template | default('monitored-restaurants.txt.j2') }}"
+    dest: "{{ data_directory }}/monitored-restaurants.txt"
+    owner: "{{ tablocrawler_user }}"
+    group: "{{ tablocrawler_group }}"
+    mode: '0644'
+    backup: true
+  become: true
+  when: monitored_restaurants_template is defined and monitored_restaurants_content is not defined
+  register: monitored_restaurants_template_result
+  tags:
+    - configuration
+    - data-files
+    - monitored-restaurants
+
+- name: Create empty monitored restaurants file if no source provided
+  ansible.builtin.file:
+    path: "{{ data_directory }}/monitored-restaurants.txt"
+    state: touch
+    owner: "{{ tablocrawler_user }}"
+    group: "{{ tablocrawler_group }}"
+    mode: '0644'
+    modification_time: preserve
+    access_time: preserve
+  become: true
+  when: >
+    monitored_restaurants_content is not defined and
+    monitored_restaurants_template is not defined and
+    not (monitored_restaurants_file is defined or monitored_restaurants_file_path is defined or (monitored_restaurants_file | default('../monitored-restaurants.txt')) is file)
+  tags:
+    - configuration
+    - data-files
+    - monitored-restaurants
+
+- name: Create initial monitoring state file if it doesn't exist
+  ansible.builtin.copy:
+    content: |
+      {
+        "last_scan": null,
+        "scan_count": 0,
+        "deployment_info": {
+          "deployed_at": "{{ ansible_date_time.iso8601 }}",
+          "deployed_by": "{{ ansible_user }}",
+          "host": "{{ inventory_hostname }}",
+          "environment": "{{ environment | default('production') }}"
+        }
+      }
+    dest: "{{ data_directory }}/monitoring-state.json"
+    owner: "{{ tablocrawler_user }}"
+    group: "{{ tablocrawler_group }}"
+    mode: '0644'
+    force: false  # Don't overwrite existing state
+  become: true
+  tags:
+    - configuration
+    - data-files
+
+- name: Set proper ownership for all configuration files
+  ansible.builtin.file:
+    path: "{{ item }}"
+    owner: "{{ tablocrawler_user }}"
+    group: "{{ tablocrawler_group }}"
+    recurse: false
+  loop:
+    - "{{ config_directory }}/docker-compose.yml"
+    - "{{ config_directory }}/tablocrawler.env"
+    - "{{ config_directory }}/logging.conf"
+    - "{{ data_directory }}/monitored-users.txt"
+    - "{{ data_directory }}/monitored-restaurants.txt"
+    - "{{ data_directory }}/monitoring-state.json"
+  become: true
+  tags:
+    - configuration
+    - permissions
+
+- name: Ensure data directory has write permissions for tablocrawler user
+  ansible.builtin.file:
+    path: "{{ data_directory }}"
+    owner: "{{ tablocrawler_user }}"
+    group: "{{ tablocrawler_group }}"
+    mode: '0755'
+    recurse: true
+  become: true
+  tags:
+    - configuration
+    - permissions
+
+- name: Verify monitored-users.txt content
+  ansible.builtin.command:
+    cmd: "cat {{ data_directory }}/monitored-users.txt"
+  register: monitored_users_content_check
+  become: true
+  changed_when: false
+  tags:
+    - configuration
+    - verification
+
+- name: Display monitored users file content
+  ansible.builtin.debug:
+    msg: |
+      Monitored users file content:
+      {{ monitored_users_content_check.stdout }}
+  tags:
+    - configuration
+    - verification
+
+- name: Verify monitored-restaurants.txt content
+  ansible.builtin.command:
+    cmd: "cat {{ data_directory }}/monitored-restaurants.txt"
+  register: monitored_restaurants_content_check
+  become: true
+  changed_when: false
+  tags:
+    - configuration
+    - verification
+
+- name: Display monitored restaurants file content
+  ansible.builtin.debug:
+    msg: |
+      Monitored restaurants file content:
+      {{ monitored_restaurants_content_check.stdout }}
+  tags:
+    - configuration
+    - verification
+
+- name: Validate configuration file syntax
+  ansible.builtin.command:
+    cmd: docker compose -f {{ config_directory }}/docker-compose.yml config --quiet
+  register: config_validation
+  changed_when: false
+  become: true
+  tags:
+    - configuration
+    - validation
+
+- name: Display configuration deployment results
+  ansible.builtin.debug:
+    msg: |
+      Configuration deployment completed:
+      - Docker Compose config: {{ 'UPDATED' if compose_config_result.changed else 'UNCHANGED' }}
+      - Environment config: {{ 'UPDATED' if env_config_result.changed else 'UNCHANGED' }}
+      - Logging config: {{ 'UPDATED' if logging_config_result.changed else 'UNCHANGED' }}
+      - Monitored users file: {{ 'COPIED' if monitored_users_copy_result.changed | default(false) else ('TEMPLATED' if monitored_users_template_result.changed | default(false) else ('CONTENT' if monitored_users_content_result.changed | default(false) else 'UNCHANGED')) }}
+      - Monitored restaurants file: {{ 'COPIED' if monitored_restaurants_copy_result.changed | default(false) else ('TEMPLATED' if monitored_restaurants_template_result.changed | default(false) else ('CONTENT' if monitored_restaurants_content_result.changed | default(false) else 'UNCHANGED')) }}
+      - Configuration validation: {{ 'PASSED' if config_validation.rc == 0 else 'FAILED' }}
+      - Config directory: {{ config_directory }}
+      - Data directory: {{ data_directory }}
+  tags:
+    - configuration
+    - reporting

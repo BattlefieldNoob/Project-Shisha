@@ -1,0 +1,12 @@
+---
+# Default variables for docker-auth role
+
+# GitHub Container Registry configuration
+github_registry: "ghcr.io"
+
+# Docker configuration
+docker_config_path: "{{ ansible_user_dir }}/.docker/config.json"
+
+# Retry configuration for authentication
+docker_auth_retries: 3
+docker_auth_delay: 5

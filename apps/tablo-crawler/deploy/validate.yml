@@ -1,0 +1,156 @@
+---
+- name: Validate TabloCrawler deployment health
+  hosts: raspberry_pis
+  gather_facts: yes
+  strategy: free
+  
+  vars_files:
+    - vault.yml
+  
+  vars:
+    validation_timeout: 30
+    
+  tasks:
+    - name: Comprehensive health validation
+      block:
+        - name: Check system resources
+          setup:
+            filter: 
+              - 'ansible_memory_mb'
+              - 'ansible_mounts'
+              - 'ansible_processor_count'
+          register: system_info
+          
+        - name: Verify Docker daemon status
+          service_facts:
+          
+        - name: Check TabloCrawler container status
+          community.docker.docker_container_info:
+            name: "{{ container_name }}"
+          register: container_status
+          
+        - name: Test container responsiveness
+          community.docker.docker_container_exec:
+            container: "{{ container_name }}"
+            command: ps aux
+          register: container_processes
+          timeout: "{{ validation_timeout }}"
+          ignore_errors: yes
+          
+        - name: Check container logs for recent activity
+          community.docker.docker_container_exec:
+            container: "{{ container_name }}"
+            command: tail -n 20 /proc/1/fd/1
+          register: recent_logs
+          ignore_errors: yes
+          
+        - name: Verify configuration files integrity
+          stat:
+            path: "{{ item }}"
+            checksum_algorithm: md5
+          register: config_integrity
+          loop:
+            - "{{ config_directory }}/docker-compose.yml"
+            - "{{ data_directory }}/monitored-users.txt"
+            
+        - name: Check disk space usage
+          shell: df -h {{ data_directory }} | tail -1 | awk '{print $5}' | sed 's/%//'
+          register: disk_usage
+          changed_when: false
+          
+        - name: Validate network connectivity
+          uri:
+            url: "https://api.tabloapp.com"
+            method: HEAD
+            timeout: 10
+          register: api_connectivity
+          ignore_errors: yes
+          
+        - name: Generate comprehensive health report
+          debug:
+            msg: |
+              ========================================
+              HEALTH VALIDATION REPORT
+              ========================================
+              Host: {{ inventory_hostname }} ({{ ansible_host }})
+              Validation Time: {{ ansible_date_time.iso8601 }}
+              
+              SYSTEM HEALTH:
+              - Memory Available: {{ ansible_memory_mb.real.free }}MB / {{ ansible_memory_mb.real.total }}MB
+              - CPU Cores: {{ ansible_processor_count }}
+              - Disk Usage ({{ data_directory }}): {{ disk_usage.stdout }}%
+              - Docker Service: {{ ansible_facts.services['docker.service'].state }}
+              
+              CONTAINER HEALTH:
+              - Container Exists: {{ container_status.exists }}
+              - Container Status: {{ container_status.container.State.Status if container_status.exists else 'Not Found' }}
+              - Container Uptime: {{ container_status.container.State.StartedAt if container_status.exists else 'N/A' }}
+              - Container Responsive: {{ 'Yes' if container_processes.rc == 0 else 'No' }}
+              - Restart Count: {{ container_status.container.RestartCount if container_status.exists else 'N/A' }}
+              
+              CONFIGURATION HEALTH:
+              - Docker Compose: {{ 'OK' if config_integrity.results[0].stat.exists else 'MISSING' }}
+              - Monitored Users: {{ 'OK' if config_integrity.results[1].stat.exists else 'MISSING' }}
+              
+              CONNECTIVITY:
+              - Tablo API: {{ 'OK' if api_connectivity.status == 200 else 'FAILED' }}
+              
+              ALERTS:
+              {% if disk_usage.stdout | int > 90 %}
+              - WARNING: Disk usage is {{ disk_usage.stdout }}% (>90%)
+              {% endif %}
+              {% if not container_status.exists or container_status.container.State.Status != 'running' %}
+              - CRITICAL: Container is not running
+              {% endif %}
+              {% if ansible_facts.services['docker.service'].state != 'running' %}
+              - CRITICAL: Docker service is not running
+              {% endif %}
+              {% if api_connectivity.status != 200 %}
+              - WARNING: Cannot reach Tablo API
+              {% endif %}
+              
+              OVERALL STATUS: {{ 'HEALTHY' if (container_status.exists and container_status.container.State.Status == 'running' and ansible_facts.services['docker.service'].state == 'running') else 'UNHEALTHY' }}
+              ========================================
+              
+      rescue:
+        - name: Log validation failure
+          debug:
+            msg: |
+              ========================================
+              VALIDATION FAILURE
+              ========================================
+              Host: {{ inventory_hostname }}
+              Error: {{ ansible_failed_result.msg }}
+              
+              IMMEDIATE ACTIONS NEEDED:
+              1. Check if host is reachable: ping {{ ansible_host }}
+              2. Verify SSH access: ssh {{ ansible_user }}@{{ ansible_host }}
+              3. Check system status manually
+              ========================================
+              
+        - name: Continue validation on other hosts
+          meta: clear_host_errors
+
+- name: Validation Summary
+  hosts: raspberry_pis
+  gather_facts: no
+  run_once: true
+  
+  tasks:
+    - name: Display validation summary
+      debug:
+        msg: |
+          ========================================
+          FLEET VALIDATION SUMMARY
+          ========================================
+          Validation completed at: {{ ansible_date_time.iso8601 }}
+          
+          Total devices: {{ ansible_play_hosts_all | length }}
+          Reachable devices: {{ ansible_play_hosts | length }}
+          Unreachable devices: {{ (ansible_play_hosts_all | difference(ansible_play_hosts)) | length }}
+          
+          Reachable: {{ ansible_play_hosts | join(', ') if ansible_play_hosts else 'None' }}
+          Unreachable: {{ (ansible_play_hosts_all | difference(ansible_play_hosts)) | join(', ') if (ansible_play_hosts_all | difference(ansible_play_hosts)) else 'None' }}
+          
+          Run 'ansible-playbook deploy/playbook.yml' to fix issues
+          ========================================

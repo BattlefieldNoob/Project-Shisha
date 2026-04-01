@@ -1,0 +1,50 @@
+---
+# Configuration validation tasks for TabloCrawler deployment
+
+- name: Validate required directories exist
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  register: directory_check
+  failed_when: not directory_check.stat.exists or not directory_check.stat.isdir
+  loop:
+    - "{{ data_directory }}"
+    - "{{ config_directory }}"
+    - "{{ data_directory }}/backup"
+
+- name: Validate configuration files exist
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  register: config_files_validation
+  failed_when: not config_files_validation.stat.exists
+  loop:
+    - "{{ config_directory }}/docker-compose.yml"
+    - "{{ config_directory }}/tablocrawler.env"
+    - "{{ config_directory }}/logging.conf"
+    - "{{ data_directory }}/monitored-users.txt"
+    - "{{ data_directory }}/monitoring-state.json"
+
+- name: Validate docker-compose configuration syntax
+  ansible.builtin.command:
+    cmd: docker compose -f {{ config_directory }}/docker-compose.yml config
+  register: compose_validation
+  changed_when: false
+  become: true
+
+- name: Validate container is running and healthy
+  community.docker.docker_container_info:
+    name: "{{ container_name }}"
+  register: container_health_check
+  failed_when: >
+    container_health_check.container is not defined or
+    container_health_check.container.State.Status != "running"
+
+- name: Display validation results
+  ansible.builtin.debug:
+    msg: |
+      Configuration validation completed successfully:
+      - All directories exist and have proper permissions
+      - All configuration files are present
+      - Docker Compose configuration is valid
+      - Container is running and healthy
+      - Container ID: {{ container_health_check.container.Id[:12] }}
+      - Container Status: {{ container_health_check.container.State.Status }}

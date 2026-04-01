@@ -1,0 +1,132 @@
+---
+# Setup Watchtower for automatic Docker image updates and Telegram notifications
+# This playbook configures Watchtower to automatically update TabloCrawler Docker images
+# and send Telegram notifications when updates occur
+
+- name: Setup Watchtower Automatic Updates
+  hosts: raspberry_pis
+  become: yes
+  gather_facts: yes
+  
+  vars_files:
+    - vault.yml
+  
+  vars:
+    # Watchtower specific configuration
+    watchtower_enabled: true
+    watchtower_interval: "600"  # Check every 10 minutes (in seconds)
+    watchtower_debug: false
+    
+  pre_tasks:
+    - name: Verify Telegram configuration
+      assert:
+        that:
+          - vault_telegram_bot_token is defined
+          - vault_telegram_bot_token != ""
+          - vault_telegram_chat_id is defined
+          - vault_telegram_chat_id != ""
+        fail_msg: "Telegram bot token and chat ID must be configured in vault.yml"
+        success_msg: "Telegram configuration verified"
+      when: watchtower_enabled | default(true)
+      
+    - name: Display Watchtower configuration
+      debug:
+        msg: |
+          Watchtower Configuration:
+          - Enabled: {{ watchtower_enabled }}
+          - Interval: {{ watchtower_interval }} seconds ({{ (watchtower_interval | int / 3600) | round(1) }} hours)
+          - Debug: {{ watchtower_debug }}
+          - Telegram Bot: {{ vault_telegram_bot_token[:10] }}...
+          - Telegram Chat: {{ vault_telegram_chat_id }}
+
+  tasks:
+      
+    - name: Update docker-compose.yml with Watchtower service
+      template:
+        src: docker-compose.yml.j2
+        dest: "{{ config_directory }}/docker-compose.yml"
+        owner: "{{ tablocrawler_user | default('tablocrawler') }}"
+        group: "{{ tablocrawler_group | default('tablocrawler') }}"
+        mode: '0644'
+        backup: true
+      register: compose_update_result
+      
+    - name: Stop existing containers
+      command:
+        cmd: docker compose -p tablocrawler down
+        chdir: "{{ config_directory }}"
+      ignore_errors: true
+      
+    - name: Start containers with Watchtower
+      command:
+        cmd: docker compose -p tablocrawler up -d
+        chdir: "{{ config_directory }}"
+      register: containers_start_result
+      
+    - name: Wait for containers to be healthy
+      pause:
+        seconds: 30
+        
+    - name: Verify Watchtower container is running
+      community.docker.docker_container_info:
+        name: watchtower
+      register: watchtower_container_info
+      
+    - name: Verify TabloCrawler container is running
+      community.docker.docker_container_info:
+        name: "{{ container_name }}"
+      register: tablocrawler_container_info
+      
+    - name: Test Watchtower by checking logs
+      command:
+        cmd: docker logs --tail 10 watchtower
+      register: watchtower_logs_result
+      ignore_errors: true
+      
+    - name: Display deployment results
+      debug:
+        msg: |
+          Watchtower Setup Results:
+          ========================
+          Docker Compose Updated: {{ compose_update_result.changed }}
+          
+          Container Status:
+          - Watchtower: {{ watchtower_container_info.container.State.Status }}
+          - TabloCrawler: {{ tablocrawler_container_info.container.State.Status }}
+          
+          Watchtower Logs: {{ 'AVAILABLE' if watchtower_logs_result.rc == 0 else 'ERROR' }}
+          
+          Next Steps:
+          1. Watchtower will check for updates every {{ (watchtower_interval | int / 3600) | round(1) }} hours
+          2. Containers will be automatically updated and restarted
+          3. Telegram notifications will be sent when updates occur
+          4. Check logs: docker logs watchtower
+          5. Manual update: docker exec watchtower /watchtower --run-once
+
+  post_tasks:
+    - name: Show container logs for troubleshooting
+      command:
+        cmd: docker logs --tail 20 watchtower
+      register: watchtower_logs
+      ignore_errors: true
+      
+    - name: Display Watchtower logs
+      debug:
+        msg: |
+          Recent Watchtower logs:
+          {{ watchtower_logs.stdout }}
+      when: watchtower_logs.rc == 0
+      
+    - name: Show next check time
+      debug:
+        msg: |
+          Watchtower Configuration Summary:
+          - Check interval: Every {{ (watchtower_interval | int / 3600) | round(1) }} hours
+          - Auto-cleanup: Enabled (removes old images)
+          - Label-based: Only updates containers with 'com.centurylinklabs.watchtower.enable=true'
+          - Telegram notifications: {{ 'Enabled' if vault_telegram_bot_token is defined else 'Disabled' }}
+          
+          Manual commands:
+          - Force update now: docker exec watchtower /watchtower --run-once
+          - Check logs: docker logs -f watchtower
+          - Stop auto-updates: docker stop watchtower

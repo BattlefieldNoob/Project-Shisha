@@ -1,0 +1,16 @@
+# Development environment specific variables
+---
+environment: "development"
+image_tag: "latest"
+log_level: "debug"
+enable_telegram: true
+backup_retention_days: 3
+
+# Development-specific settings
+monitoring_interval: 300  # 5 minutes for development
+days_to_scan: 10
+search_radius: "15"
+
+# Relaxed resource limits for development
+memory_limit: "512M"
+cpu_quota: "100%"

@@ -1,0 +1,23 @@
+---
+galaxy_info:
+  author: TabloCrawler
+  description: Docker installation role for ARM64 Raspberry Pi devices
+  company: TabloCrawler
+  license: MIT
+  min_ansible_version: 2.9
+  platforms:
+    - name: Ubuntu
+      versions:
+        - focal
+        - jammy
+    - name: Debian
+      versions:
+        - bullseye
+        - bookworm
+  galaxy_tags:
+    - docker
+    - raspberry-pi
+    - arm64
+    - containers
+
+dependencies: []

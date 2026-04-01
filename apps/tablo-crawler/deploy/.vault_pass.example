@@ -1,0 +1,4 @@
+# Example vault password file
+# Copy this to .vault_pass and add your actual vault password
+# Make sure to add .vault_pass to .gitignore to keep it secure
+your_vault_password_here

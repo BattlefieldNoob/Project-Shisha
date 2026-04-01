@@ -1,0 +1,66 @@
+---
+# Configuration backup tasks for TabloCrawler deployment
+
+- name: Create backup timestamp
+  ansible.builtin.set_fact:
+    backup_timestamp: "{{ ansible_date_time.epoch }}"
+
+- name: Create backup directory for this deployment
+  ansible.builtin.file:
+    path: "{{ data_directory }}/backup/{{ backup_timestamp }}"
+    state: directory
+    owner: "{{ tablocrawler_user }}"
+    group: "{{ tablocrawler_group }}"
+    mode: '0755'
+  become: true
+
+- name: Backup existing configuration files
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "{{ data_directory }}/backup/{{ backup_timestamp }}/{{ item.dest }}"
+    owner: "{{ tablocrawler_user }}"
+    group: "{{ tablocrawler_group }}"
+    mode: '0644'
+    remote_src: true
+  loop:
+    - { src: "{{ config_directory }}/docker-compose.yml", dest: "docker-compose.yml" }
+    - { src: "{{ config_directory }}/tablocrawler.env", dest: "tablocrawler.env" }
+    - { src: "{{ config_directory }}/logging.conf", dest: "logging.conf" }
+    - { src: "{{ data_directory }}/monitored-users.txt", dest: "monitored-users.txt" }
+    - { src: "{{ data_directory }}/monitoring-state.json", dest: "monitoring-state.json" }
+  become: true
+  ignore_errors: true
+  register: backup_result
+
+- name: Create backup metadata
+  ansible.builtin.copy:
+    content: |
+      Backup created: {{ ansible_date_time.iso8601 }}
+      Hostname: {{ inventory_hostname }}
+      Image: {{ docker_image }}:{{ image_tag }}
+      Ansible User: {{ ansible_user }}
+      Backup Files:
+      {% for item in backup_result.results %}
+      - {{ item.item.dest }}: {{ 'SUCCESS' if not item.failed else 'FAILED' }}
+      {% endfor %}
+    dest: "{{ data_directory }}/backup/{{ backup_timestamp }}/backup-info.txt"
+    owner: "{{ tablocrawler_user }}"
+    group: "{{ tablocrawler_group }}"
+    mode: '0644'
+  become: true
+
+- name: Clean up old backups (keep last 5)
+  ansible.builtin.shell: |
+    cd {{ data_directory }}/backup
+    ls -1t | tail -n +6 | xargs -r rm -rf
+  become: true
+  ignore_errors: true
+
+- name: Display backup information
+  ansible.builtin.debug:
+    msg: |
+      Configuration backup completed:
+      - Backup timestamp: {{ backup_timestamp }}
+      - Backup location: {{ data_directory }}/backup/{{ backup_timestamp }}
+      - Files backed up: {{ backup_result.results | selectattr('failed', 'undefined') | list | length }}
+      - Failed backups: {{ backup_result.results | selectattr('failed', 'defined') | list | length }}

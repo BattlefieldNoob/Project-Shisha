@@ -1,0 +1,107 @@
+---
+- name: Update TabloCrawler configuration only
+  hosts: raspberry_pis
+  become: yes
+  gather_facts: yes
+  
+  vars_files:
+    - vault.yml
+  
+  vars:
+    restart_after_config: "{{ restart | default(true) }}"
+    backup_config: "{{ backup | default(false) }}"
+    
+  tasks:
+    - name: Get tablocrawler user information
+      ansible.builtin.getent:
+        database: passwd
+        key: "{{ tablocrawler_user }}"
+      register: tablocrawler_user_info
+      
+    - name: Set user ID and group ID facts
+      ansible.builtin.set_fact:
+        tablocrawler_uid: "{{ tablocrawler_user_info.ansible_facts.getent_passwd[tablocrawler_user][1] }}"
+        tablocrawler_gid: "{{ tablocrawler_user_info.ansible_facts.getent_passwd[tablocrawler_user][2] }}"
+
+    - name: Update docker-compose configuration
+      ansible.builtin.template:
+        src: docker-compose.yml.j2
+        dest: "{{ config_directory }}/docker-compose.yml"
+        owner: "{{ tablocrawler_user }}"
+        group: "{{ tablocrawler_group }}"
+        mode: '0644'
+        backup: "{{ backup_config }}"
+      register: compose_update_result
+      tags:
+        - docker-compose
+        - config
+        
+    - name: Update environment configuration
+      ansible.builtin.template:
+        src: tablocrawler.env.j2
+        dest: "{{ config_directory }}/tablocrawler.env"
+        owner: "{{ tablocrawler_user }}"
+        group: "{{ tablocrawler_group }}"
+        mode: '0600'
+        backup: "{{ backup_config }}"
+      register: env_update_result
+      tags:
+        - environment
+        - config
+
+    - name: Copy/update monitored users file
+      ansible.builtin.copy:
+        src: "{{ monitored_users_file | default('../monitored-users.txt') }}"
+        dest: "{{ data_directory }}/monitored-users.txt"
+        owner: "{{ tablocrawler_user }}"
+        group: "{{ tablocrawler_group }}"
+        mode: '0644'
+        backup: "{{ backup_config }}"
+      when: monitored_users_file is defined or (monitored_users_file | default('../monitored-users.txt')) is file
+      register: users_file_update_result
+      tags:
+        - monitored-users
+        - config
+        
+    - name: Create monitored users from content variable
+      ansible.builtin.copy:
+        content: "{{ monitored_users_content }}"
+        dest: "{{ data_directory }}/monitored-users.txt"
+        owner: "{{ tablocrawler_user }}"
+        group: "{{ tablocrawler_group }}"
+        mode: '0644'
+        backup: "{{ backup_config }}"
+      when: monitored_users_content is defined
+      register: users_content_update_result
+      tags:
+        - monitored-users
+        - config
+
+    - name: Restart container with new configuration
+      block:
+        - name: Stop current container
+          community.docker.docker_container:
+            name: "{{ container_name }}"
+            state: stopped
+          register: container_stop_result
+
+        - name: Remove existing container
+          community.docker.docker_container:
+            name: "{{ container_name }}"
+            state: absent
+          ignore_errors: true
+          when: container_stop_result is succeeded
+          
+        - name: Start container with updated configuration
+          ansible.builtin.command:
+            cmd: docker compose -p tablocrawler up -d
+            chdir: "{{ config_directory }}"
+          
+        - name: Wait for container to start
+          pause:
+            seconds: 5
+              
+      when: restart_after_config | bool and (compose_update_result.changed or env_update_result.changed or users_file_update_result.changed | default(false) or users_content_update_result.changed | default(false))
+      tags:
+        - restart
+        - container

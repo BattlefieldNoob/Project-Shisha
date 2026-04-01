@@ -1,0 +1,9 @@
+---
+- name: Bootstrap machine
+  hosts: all
+  become: yes
+  tasks:
+    - name: Ensure Docker is installed
+      apt:
+        name: docker.io
+        state: present

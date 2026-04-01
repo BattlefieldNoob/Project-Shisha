@@ -1,0 +1,154 @@
+---
+- name: Fix file permissions for TabloCrawler
+  hosts: raspberry_pis
+  become: yes
+  gather_facts: no
+  
+  vars_files:
+    - vault.yml
+    
+  tasks:
+    - name: Get tablocrawler user information
+      ansible.builtin.getent:
+        database: passwd
+        key: "{{ tablocrawler_user }}"
+      register: tablocrawler_user_info
+      
+    - name: Set user ID and group ID facts
+      ansible.builtin.set_fact:
+        tablocrawler_uid: "{{ tablocrawler_user_info.ansible_facts.getent_passwd[tablocrawler_user][1] }}"
+        tablocrawler_gid: "{{ tablocrawler_user_info.ansible_facts.getent_passwd[tablocrawler_user][2] }}"
+        
+    - name: Display user information
+      debug:
+        msg: |
+          User: {{ tablocrawler_user }}
+          UID: {{ tablocrawler_uid }}
+          GID: {{ tablocrawler_gid }}
+          
+    - name: Stop existing container
+      community.docker.docker_container:
+        name: "{{ container_name }}"
+        state: stopped
+      ignore_errors: yes
+      
+    - name: Fix ownership of data directory and all contents
+      ansible.builtin.file:
+        path: "{{ data_directory }}"
+        owner: "{{ tablocrawler_user }}"
+        group: "{{ tablocrawler_group }}"
+        mode: '0755'
+        recurse: true
+        
+    - name: Fix ownership of config directory and all contents
+      ansible.builtin.file:
+        path: "{{ config_directory }}"
+        owner: "{{ tablocrawler_user }}"
+        group: "{{ tablocrawler_group }}"
+        mode: '0755'
+        recurse: true
+        
+    - name: Ensure monitored-users.txt has correct permissions
+      ansible.builtin.file:
+        path: "{{ data_directory }}/monitored-users.txt"
+        owner: "{{ tablocrawler_user }}"
+        group: "{{ tablocrawler_group }}"
+        mode: '0644'
+        
+    - name: Ensure monitoring-state.json has correct permissions
+      ansible.builtin.file:
+        path: "{{ data_directory }}/monitoring-state.json"
+        owner: "{{ tablocrawler_user }}"
+        group: "{{ tablocrawler_group }}"
+        mode: '0644'
+      ignore_errors: yes  # File might not exist yet
+      
+    - name: Remove any existing monitoring-state.json.tmp files
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - "{{ data_directory }}/monitoring-state.json.tmp"
+        - "{{ data_directory }}/monitoring-state.json.backup.*"
+      ignore_errors: yes
+      
+    - name: Verify file permissions
+      ansible.builtin.command:
+        cmd: "ls -la {{ data_directory }}/"
+      register: file_permissions
+      
+    - name: Display file permissions
+      debug:
+        msg: |
+          File permissions in {{ data_directory }}:
+          {{ file_permissions.stdout }}
+          
+    - name: Check monitored-users.txt content
+      ansible.builtin.command:
+        cmd: "cat {{ data_directory }}/monitored-users.txt"
+      register: monitored_users_content
+      
+    - name: Display monitored users content
+      debug:
+        msg: |
+          Content of monitored-users.txt:
+          {{ monitored_users_content.stdout }}
+          
+    - name: Recreate docker-compose configuration with user mapping
+      ansible.builtin.template:
+        src: docker-compose.yml.j2
+        dest: "{{ config_directory }}/docker-compose.yml"
+        owner: "{{ tablocrawler_user }}"
+        group: "{{ tablocrawler_group }}"
+        mode: '0644'
+        backup: true
+        
+    - name: Stop current container
+      community.docker.docker_container:
+        name: "{{ container_name }}"
+        state: stopped
+      register: container_stop_result
+
+    - name: Remove existing container
+      community.docker.docker_container:
+        name: "{{ container_name }}"
+        state: absent
+      ignore_errors: true
+      when: container_stop_result is succeeded
+        
+    - name: Start container with new configuration
+      ansible.builtin.command:
+        cmd: docker compose -p tablocrawler up -d
+        chdir: "{{ config_directory }}"
+        
+    - name: Wait for container to start
+      pause:
+        seconds: 10
+        
+    - name: Check container status
+      community.docker.docker_container_info:
+        name: "{{ container_name }}"
+      register: container_status
+      
+    - name: Display container status
+      debug:
+        msg: |
+          Container Status:
+          - Running: {{ container_status.container.State.Status == 'running' }}
+          - User: {{ tablocrawler_uid }}:{{ tablocrawler_gid }}
+          - Started: {{ container_status.container.State.StartedAt }}
+          
+    - name: Show recent container logs
+      shell: "docker logs --tail 20 {{ container_name }}"
+      register: recent_logs
+      
+    - name: Display recent logs
+      debug:
+        msg: |
+          Recent container logs:
+          {{ recent_logs.stdout }}
+          {% if recent_logs.stderr %}
+          
+          STDERR:
+          {{ recent_logs.stderr }}
+          {% endif %}

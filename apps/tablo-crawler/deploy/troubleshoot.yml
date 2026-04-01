@@ -1,0 +1,194 @@
+---
+- name: Comprehensive TabloCrawler troubleshooting
+  hosts: raspberry_pis
+  become: yes
+  gather_facts: yes
+  
+  vars_files:
+    - vault.yml
+    
+  tasks:
+    - name: System information
+      debug:
+        msg: |
+          ========================================
+          SYSTEM INFO - {{ inventory_hostname }}
+          ========================================
+          OS: {{ ansible_distribution }} {{ ansible_distribution_version }}
+          Architecture: {{ ansible_architecture }}
+          Memory: {{ ansible_memtotal_mb }}MB
+          Disk Usage: {{ ansible_mounts | selectattr('mount', 'equalto', '/') | map(attribute='size_available') | first | filesizeformat }} available
+          Uptime: {{ ansible_uptime_seconds | int // 3600 }}h {{ (ansible_uptime_seconds | int % 3600) // 60 }}m
+          
+    - name: Check Docker service status
+      service_facts:
+      
+    - name: Display Docker service info
+      debug:
+        msg: |
+          Docker Service Status:
+          - State: {{ ansible_facts.services['docker.service'].state | default('unknown') }}
+          - Status: {{ ansible_facts.services['docker.service'].status | default('unknown') }}
+          
+    - name: Check container status
+      community.docker.docker_container_info:
+        name: "{{ container_name }}"
+      register: container_info
+      
+    - name: Container diagnostics
+      debug:
+        msg: |
+          ========================================
+          CONTAINER DIAGNOSTICS
+          ========================================
+          {% if container_info.exists %}
+          Container exists: Yes
+          Status: {{ container_info.container.State.Status }}
+          Started: {{ container_info.container.State.StartedAt }}
+          Finished: {{ container_info.container.State.FinishedAt | default('N/A') }}
+          Exit Code: {{ container_info.container.State.ExitCode | default('N/A') }}
+          Restart Count: {{ container_info.container.RestartCount }}
+          Image: {{ container_info.container.Config.Image }}
+          
+          Port Bindings:
+          {% for port, bindings in container_info.container.NetworkSettings.Ports.items() %}
+          - {{ port }}: {{ bindings | map(attribute='HostPort') | join(', ') if bindings else 'Not bound' }}
+          {% endfor %}
+          
+          Environment Variables:
+          {% for env in container_info.container.Config.Env %}
+          - {{ env }}
+          {% endfor %}
+          {% else %}
+          Container exists: No
+          {% endif %}
+          
+    - name: Get container logs (last 100 lines)
+      shell: "docker logs --tail 100 {{ container_name }}"
+      register: detailed_logs
+      when: container_info.exists
+      ignore_errors: yes
+      
+    - name: Display detailed logs
+      debug:
+        msg: |
+          ========================================
+          CONTAINER LOGS (Last 100 lines)
+          ========================================
+          {{ detailed_logs.stdout }}
+          {% if detailed_logs.stderr %}
+          
+          STDERR:
+          {{ detailed_logs.stderr }}
+          {% endif %}
+          ========================================
+      when: container_info.exists and detailed_logs is defined
+      
+    - name: Check disk space
+      shell: "df -h"
+      register: disk_space
+      
+    - name: Display disk usage
+      debug:
+        msg: |
+          ========================================
+          DISK USAGE
+          ========================================
+          {{ disk_space.stdout }}
+          
+    - name: Check Docker images
+      shell: "docker images"
+      register: docker_images
+      
+    - name: Display Docker images
+      debug:
+        msg: |
+          ========================================
+          DOCKER IMAGES
+          ========================================
+          {{ docker_images.stdout }}
+          
+    - name: Check running containers
+      shell: "docker ps -a"
+      register: all_containers
+      
+    - name: Display all containers
+      debug:
+        msg: |
+          ========================================
+          ALL CONTAINERS
+          ========================================
+          {{ all_containers.stdout }}
+          
+    - name: Check network connectivity
+      uri:
+        url: "https://api.tabloapp.com"
+        method: HEAD
+        timeout: 10
+      register: api_connectivity
+      ignore_errors: yes
+      
+    - name: Display connectivity test
+      debug:
+        msg: |
+          ========================================
+          NETWORK CONNECTIVITY
+          ========================================
+          Tablo API reachable: {{ 'Yes' if api_connectivity.status == 200 else 'No' }}
+          {% if api_connectivity.status is defined %}
+          Status Code: {{ api_connectivity.status }}
+          {% endif %}
+          {% if api_connectivity.msg is defined %}
+          Error: {{ api_connectivity.msg }}
+          {% endif %}
+          
+    - name: Check configuration files
+      stat:
+        path: "{{ item }}"
+      register: config_files
+      loop:
+        - "{{ data_directory }}/monitored-users.txt"
+        - "{{ config_directory }}/docker-compose.yml"
+        - "{{ data_directory }}/monitoring-state.json"
+        
+    - name: Display configuration status
+      debug:
+        msg: |
+          ========================================
+          CONFIGURATION FILES
+          ========================================
+          {% for item in config_files.results %}
+          {{ item.item }}: {{ 'Present' if item.stat.exists else 'Missing' }}
+          {% if item.stat.exists %}
+          - Size: {{ item.stat.size }} bytes
+          - Modified: {{ item.stat.mtime | to_datetime }}
+          {% endif %}
+          {% endfor %}
+          
+    - name: Generate troubleshooting summary
+      debug:
+        msg: |
+          ========================================
+          TROUBLESHOOTING SUMMARY
+          ========================================
+          Host: {{ inventory_hostname }}
+          Timestamp: {{ ansible_date_time.iso8601 }}
+          
+          QUICK STATUS:
+          - Docker Service: {{ ansible_facts.services['docker.service'].state | default('unknown') }}
+          - Container Exists: {{ 'Yes' if container_info.exists else 'No' }}
+          - Container Running: {{ 'Yes' if container_info.exists and container_info.container.State.Status == 'running' else 'No' }}
+          - API Connectivity: {{ 'Yes' if api_connectivity.status == 200 else 'No' }}
+          
+          NEXT STEPS:
+          {% if not container_info.exists %}
+          1. Container missing - run deployment playbook
+          {% elif container_info.container.State.Status != 'running' %}
+          1. Container not running - check logs above for errors
+          2. Try restarting: docker restart {{ container_name }}
+          {% elif api_connectivity.status != 200 %}
+          1. Network connectivity issues - check internet connection
+          {% else %}
+          1. System appears healthy - check application logs above
+          {% endif %}
+          ========================================
