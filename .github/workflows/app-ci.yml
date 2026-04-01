@@ -1,9 +1,17 @@
 name: Build and Push Application
 
+on:
+  workflow_call:
+    inputs:
+      app-name:
+        description: Application folder under apps/
+        required: true
+        type: string
+
 env:
   REGISTRY: ghcr.io
   IMAGE_BASE: battlefieldnoob/project-shisha
-  IMAGE_NAME: '{app-name}'
+  IMAGE_NAME: ${{ inputs.app-name }}
   IMAGE_TAG: latest
 
 jobs:
