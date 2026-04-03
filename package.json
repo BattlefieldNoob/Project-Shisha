@@ -12,5 +12,8 @@
     "build:tablo-crawler": "bun run --cwd apps/tablo-crawler build",
     "test:fuel-advisor-bot": "bun run --cwd apps/fuel-advisor-bot test",
     "test:tablo-crawler": "bun run --cwd apps/tablo-crawler test"
+  },
+  "devDependencies": {
+    "bun-types": "^1.3.10"
   }
 }

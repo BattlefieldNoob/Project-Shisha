@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(bun test:*)",
+      "Bash(bun run:*)"
     ]
   }
 }
