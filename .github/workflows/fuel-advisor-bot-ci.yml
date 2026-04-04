@@ -1,17 +1,18 @@
-name: Build and Push Fuel Advisor Bot
+# Workflow for Fuel Advisor Bot CI/CD
+name: Fuel Advisor Bot CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
     paths:
       - 'apps/fuel-advisor-bot/**'
+      - 'packages/shared-config/**'
+      - 'packages/shared-lib/**'
+
   workflow_dispatch:
 
 jobs:
-  build:
+  ci:
     uses: ./.github/workflows/app-ci.yml
-    permissions:
-      contents: read
-      packages: write
     with:
       app-name: fuel-advisor-bot

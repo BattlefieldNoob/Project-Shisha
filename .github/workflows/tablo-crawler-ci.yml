@@ -1,17 +1,18 @@
-name: Build and Push Tablo Crawler
+# Workflow for Tablo Crawler CI/CD
+name: Tablo Crawler CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
     paths:
       - 'apps/tablo-crawler/**'
+      - 'packages/shared-config/**'
+      - 'packages/shared-lib/**'
+
   workflow_dispatch:
 
 jobs:
-  build:
+  ci:
     uses: ./.github/workflows/app-ci.yml
-    permissions:
-      contents: read
-      packages: write
     with:
       app-name: tablo-crawler

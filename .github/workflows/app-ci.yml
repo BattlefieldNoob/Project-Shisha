@@ -1,4 +1,5 @@
-name: Build and Push Application
+# Main CI workflow - coordinates tests, linting, build and Docker
+name: App CI
 
 on:
   workflow_call:
@@ -9,20 +10,128 @@ on:
         type: string
 
 env:
-  REGISTRY: ghcr.io
-  IMAGE_BASE: battlefieldnoob/project-shisha
-  IMAGE_NAME: ${{ inputs.app-name }}
-  IMAGE_TAG: latest
+  APP_NAME: ${{ inputs.app-name }}
 
 jobs:
-  build:
+  # Lint and test run in parallel
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: apps/${{ env.APP_NAME }}/node_modules
+          key: bun-modules-${{ env.APP_NAME }}-${{ hashFiles(format('apps/{0}/package.json', env.APP_NAME), format('apps/{0}/bun.lockb', env.APP_NAME)) }}
+          restore-keys: |
+            bun-modules-${{ env.APP_NAME }}-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+        working-directory: apps/${{ env.APP_NAME }}
+
+      - name: Run TypeScript check
+        run: bun run tsc --noEmit
+        working-directory: apps/${{ env.APP_NAME }}
+        continue-on-error: true
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: apps/${{ env.APP_NAME }}/node_modules
+          key: bun-modules-${{ env.APP_NAME }}-${{ hashFiles(format('apps/{0}/package.json', env.APP_NAME), format('apps/{0}/bun.lockb', env.APP_NAME)) }}
+          restore-keys: |
+            bun-modules-${{ env.APP_NAME }}-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+        working-directory: apps/${{ env.APP_NAME }}
+
+      - name: Run tests
+        run: bun test
+        working-directory: apps/${{ env.APP_NAME }}
+
+  # Build runs in parallel with lint/test
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: apps/${{ env.APP_NAME }}/node_modules
+          key: bun-modules-${{ env.APP_NAME }}-${{ hashFiles(format('apps/{0}/package.json', env.APP_NAME), format('apps/{0}/bun.lockb', env.APP_NAME)) }}
+          restore-keys: |
+            bun-modules-${{ env.APP_NAME }}-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+        working-directory: apps/${{ env.APP_NAME }}
+
+      - name: Build application
+        run: bun run build
+        working-directory: apps/${{ env.APP_NAME }}
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.APP_NAME }}-dist
+          path: apps/${{ env.APP_NAME }}/dist
+          retention-days: 7
+
+  # Docker build and push - runs after lint, test, and build
+  docker:
+    name: Build Docker
+    needs: [lint, test, build]
+    runs-on: ubuntu-latest
+
     permissions:
       contents: read
       packages: write
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.APP_NAME }}-dist
+          path: apps/${{ env.APP_NAME }}/dist
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -30,20 +139,26 @@ jobs:
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
-          registry: ${{ env.REGISTRY }}
+          registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata (tags, labels) for Docker
+      - name: Extract Docker metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_BASE }}/${{ env.IMAGE_NAME }}
+          images: ghcr.io/${{ github.repository }}/${{ env.APP_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{ branch }}-
+            type=raw,value=${{ github.sha }}
 
-      - name: Build and push
+      - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: apps/${{ env.IMAGE_NAME }}
+          context: apps/${{ env.APP_NAME }}
+          file: apps/${{ env.APP_NAME }}/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

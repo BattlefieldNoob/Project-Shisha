@@ -1,0 +1,36 @@
+# Reusable workflow to run tests for an application
+name: Run Tests
+
+on:
+  workflow_call:
+    inputs:
+      app-name:
+        description: Application folder under apps/
+        required: true
+        type: string
+      runner:
+        description: Runner to use
+        required: false
+        type: string
+        default: ubuntu-latest
+
+jobs:
+  test:
+    name: Test ${{ inputs.app-name }}
+    runs-on: ${{ inputs.runner }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+        working-directory: apps/${{ inputs.app-name }}
+
+      - name: Run tests
+        run: bun test
+        working-directory: apps/${{ inputs.app-name }}

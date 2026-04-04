@@ -1,0 +1,64 @@
+# Reusable workflow for linting TypeScript/Bun projects
+name: Lint Code
+
+on:
+  workflow_call:
+    inputs:
+      app-name:
+        description: Application folder under apps/
+        required: true
+        type: string
+      runner:
+        description: Runner to use
+        required: false
+        type: string
+        default: ubuntu-latest
+
+jobs:
+  lint:
+    name: Lint ${{ inputs.app-name }}
+    runs-on: ${{ inputs.runner }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Get bun cache key
+        id: cache-key
+        run: |
+          echo "hash=${{ hashFiles('apps/${{ inputs.app-name }}/package.json', 'apps/${{ inputs.app-name }}/bun.lockb') }}" >> $GITHUB_OUTPUT
+
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: apps/${{ inputs.app-name }}/node_modules
+          key: bun-modules-${{ inputs.app-name }}-${{ steps.cache-key.outputs.hash }}
+          restore-keys: |
+            bun-modules-${{ inputs.app-name }}-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+        working-directory: apps/${{ inputs.app-name }}
+
+      - name: Run TypeScript check
+        run: bun run tsc --noEmit
+        working-directory: apps/${{ inputs.app-name }}
+        continue-on-error: true
+
+      - name: Check for available lint script
+        run: |
+          if grep -q '"lint"' apps/${{ inputs.app-name }}/package.json; then
+            echo "lint_exists=true" >> $GITHUB_OUTPUT
+          fi
+        id: lint-script
+        name: Check lint script
+
+      - name: Run lint if available
+        if: steps.lint-script.outputs.lint_exists == 'true'
+        run: bun run lint
+        working-directory: apps/${{ inputs.app-name }}
