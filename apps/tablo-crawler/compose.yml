@@ -1,13 +1,37 @@
-version: '3.8'
+---
+# Tablo Crawler Docker Compose
+# Standardized according to bun-monorepo-blueprint.md
 
 services:
   tablo-crawler:
     build:
       context: .
       dockerfile: Dockerfile
-    ports:
-      - "3000:3000"
+    container_name: tablo-crawler
+    restart: unless-stopped
     env_file:
       - .env.example
+    environment:
+      - NODE_ENV=production
+    ports:
+      - "3000:3000"
     volumes:
       - ./src:/app/src
+      - ./monitoring-state.json:/app/monitoring-state.json
+      - ./monitored-restaurants.txt:/app/monitored-restaurants.txt
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
+      com.project-shisha.app: "tablo-crawler"
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "pgrep", "-x", "bun"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+networks:
+  app-network:
+    name: app-network
+    driver: bridge
