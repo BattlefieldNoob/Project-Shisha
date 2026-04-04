@@ -1,2 +1,15 @@
-# Deployment strategy for tablo-crawler
-strategy: "safe"
+---
+# Tablo Crawler deployment variables
+# Following blueprint conventions from bun-monorepo-blueprint.md
+
+app_name: tablo-crawler
+container_name: tablo-crawler
+image_repository: ghcr.io/battlefieldnoob/tablo-crawler
+image_tag: latest
+app_port: 3000
+host_port: 3000
+watchtower_enabled: true
+restart_policy: unless-stopped
+env_file_name: tablo-crawler.env
+compose_project_name: tablo-crawler
+dockerfile_strategy: safe
