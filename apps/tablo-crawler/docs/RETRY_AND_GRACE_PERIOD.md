@@ -9,11 +9,13 @@ Il sistema precedente aveva un problema: quando l'API di Tablo ritornava tempora
 ### 1. Sistema di Retry Robusto
 
 **Configurazione:**
+
 - `MAX_RETRIES`: Numero massimo di tentativi (default: 3)
 - `RETRY_DELAY_MS`: Ritardo iniziale tra i tentativi in millisecondi (default: 1000)
 - `RETRY_BACKOFF_MULTIPLIER`: Moltiplicatore per il backoff esponenziale (default: 2)
 
 **Funzionalità:**
+
 - Retry automatico per tutte le chiamate API
 - Backoff esponenziale per evitare di sovraccaricare il server
 - Retry intelligente basato sui codici di risposta dell'API
@@ -22,9 +24,11 @@ Il sistema precedente aveva un problema: quando l'API di Tablo ritornava tempora
 ### 2. Grace Period per Tavoli Scomparsi
 
 **Configurazione:**
+
 - `GRACE_PERIOD_SCANS`: Numero di scan da aspettare prima di considerare un tavolo veramente cancellato (default: 3)
 
 **Funzionalità:**
+
 - I tavoli che scompaiono vengono messi in una lista "sospetta" invece di essere immediatamente segnalati come cancellati
 - Solo dopo N scan consecutivi senza il tavolo, viene generata la notifica di cancellazione
 - Se un tavolo riappare durante il grace period, non vengono generate notifiche spurie
@@ -47,6 +51,7 @@ export GRACE_PERIOD_SCANS="3"             # Scan da aspettare prima di segnalare
 ### Esempi di Configurazione
 
 **Configurazione Conservativa (meno notifiche spurie):**
+
 ```bash
 export MAX_RETRIES="5"
 export RETRY_DELAY_MS="2000"
@@ -54,6 +59,7 @@ export GRACE_PERIOD_SCANS="5"
 ```
 
 **Configurazione Aggressiva (notifiche più rapide):**
+
 ```bash
 export MAX_RETRIES="2"
 export RETRY_DELAY_MS="500"
@@ -63,17 +69,20 @@ export GRACE_PERIOD_SCANS="2"
 ## Comportamento del Sistema
 
 ### Scenario 1: API Temporaneamente Non Disponibile
+
 1. **Scan 1**: API fallisce → Retry automatico → Eventualmente successo o fallimento finale
 2. Se tutti i retry falliscono, il scan viene saltato con warning
 3. **Scan 2**: API funziona → Nessuna notifica spuria, sistema continua normalmente
 
 ### Scenario 2: Tavolo Scompare Temporaneamente
+
 1. **Scan 1**: Tavolo non trovato → Aggiunto alla lista sospetti (1/3)
 2. **Scan 2**: Tavolo ancora non trovato → Contatore incrementato (2/3)
 3. **Scan 3**: Tavolo riappare → Rimosso dalla lista sospetti, nessuna notifica
 4. **Alternativa Scan 3**: Tavolo ancora non trovato → Notifica di cancellazione (3/3)
 
 ### Scenario 3: Tavolo Veramente Cancellato
+
 1. **Scan 1-3**: Tavolo non trovato per 3 scan consecutivi
 2. **Scan 3**: Generata notifica di cancellazione definitiva
 3. Tavolo rimosso dalla lista sospetti

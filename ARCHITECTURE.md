@@ -17,6 +17,7 @@ Each application owns its deployment configuration. There's no shared "deploy co
 ### 2. Convention Over Configuration
 
 Every app follows the same structure:
+
 - Same mandatory files (`Dockerfile`, `compose.yml`, etc.)
 - Same naming patterns
 - Same deployment flow
@@ -29,10 +30,10 @@ Infrastructure services (Watchtower, Traefik, networks) live in `infra/` and are
 
 ### 4. Two-Tier Docker Strategy
 
-| Strategy | Image | Use Case |
-|----------|-------|----------|
-| **Safe** | Full Bun runtime (~150MB) | Development, complex deps |
-| **Optimized** | Compiled binary on Alpine (~10MB) | Production, stable apps |
+| Strategy      | Image                             | Use Case                  |
+| ------------- | --------------------------------- | ------------------------- |
+| **Safe**      | Full Bun runtime (~150MB)         | Development, complex deps |
+| **Optimized** | Compiled binary on Alpine (~10MB) | Production, stable apps   |
 
 ---
 
@@ -54,6 +55,7 @@ command: --label-enable --interval 60 --cleanup
 ### Decision 3: Parameterized Ansible Role
 
 **Rationale:** A single `app_deploy` role reads `deploy.vars.yml` and renders the compose file. Benefits:
+
 - Single point of change for deployment logic
 - Differences between apps are data, not code
 - Easy to add new apps
@@ -61,8 +63,9 @@ command: --label-enable --interval 60 --cleanup
 ### Decision 4: Docker Strategy per App
 
 Each app declares its strategy in `deploy.vars.yml`:
+
 ```yaml
-dockerfile_strategy: safe  # or "optimized"
+dockerfile_strategy: safe # or "optimized"
 ```
 
 ### Decision 5: Environment Separation
@@ -78,6 +81,7 @@ dockerfile_strategy: safe  # or "optimized"
 ### Application Layer (`apps/`)
 
 Each app contains:
+
 - `src/` — Application source code
 - Tests alongside source (`.test.ts`)
 - `package.json` with workspace dependencies
@@ -85,6 +89,7 @@ Each app contains:
 ### Infrastructure Layer (`infra/`)
 
 Shared Docker services:
+
 - Watchtower (global updates)
 - Traefik (reverse proxy)
 - Networks (app isolation)
@@ -92,6 +97,7 @@ Shared Docker services:
 ### Deployment Layer (`ansible/`)
 
 Deployment automation:
+
 - `app_deploy` role (parameterized)
 - `deploy-app.yml` playbook
 - `rollback-app.yml` playbook
@@ -101,12 +107,15 @@ Deployment automation:
 ## Data Flow
 
 ### Development
+
 `Code → bun run dev → Local execution`
 
 ### CI/CD
+
 `Push main → GitHub Actions → Build image → Push to GHCR → Watchtower updates`
 
 ### Deployment
+
 `Ansible → Read deploy.vars.yml → Render compose → docker compose up`
 
 ---
@@ -114,11 +123,13 @@ Deployment automation:
 ## Security
 
 ### Container Isolation
+
 - Each app in own container
 - Internal Docker network by default
 - External access via Traefik
 
 ### Secrets
+
 - Secrets in `.env` (gitignored)
 - Production secrets on server only
 - Never commit secrets

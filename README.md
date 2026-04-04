@@ -64,6 +64,7 @@ Telegram bot for fuel price tracking from MIMIT API.
 **Run:** `bun run dev:fuel-advisor-bot`
 
 **Deploy:**
+
 ```bash
 ansible-playbook -i ansible/inventories/production/hosts.ini \
   ansible/playbooks/deploy-app.yml \
@@ -80,9 +81,9 @@ Web crawler for restaurant/monitoring data.
 
 ## Docker Strategies
 
-| Strategy | Use When |
-|----------|----------|
-| `Dockerfile` (safe) | Development, complex deps |
+| Strategy               | Use When                  |
+| ---------------------- | ------------------------- |
+| `Dockerfile` (safe)    | Development, complex deps |
 | `Dockerfile.optimized` | Stable app, minimal image |
 
 Set via `deploy.vars.yml`: `dockerfile_strategy: safe`
@@ -91,12 +92,12 @@ Set via `deploy.vars.yml`: `dockerfile_strategy: safe`
 
 ## Documentation
 
-| File | Purpose |
-|------|---------|
-| [CONTRIBUTING.md](./CONTRIBUTING.md) | Development guidelines |
-| [ARCHITECTURE.md](./ARCHITECTURE.md) | Design decisions |
-| [CLAUDE.md](./CLAUDE.md) | AI agent context |
-| [bun-monorepo-blueprint.md](./bun-monorepo-blueprint.md) | Original blueprint |
+| File                                                     | Purpose                |
+| -------------------------------------------------------- | ---------------------- |
+| [CONTRIBUTING.md](./CONTRIBUTING.md)                     | Development guidelines |
+| [ARCHITECTURE.md](./ARCHITECTURE.md)                     | Design decisions       |
+| [CLAUDE.md](./CLAUDE.md)                                 | AI agent context       |
+| [bun-monorepo-blueprint.md](./bun-monorepo-blueprint.md) | Original blueprint     |
 
 ---
 

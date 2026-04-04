@@ -51,14 +51,14 @@ ssh ${SSH_USER:-pi}@${SSH_HOST} "
 echo "Starting continuous health monitoring..."
 while true; do
   echo "=== $(date) ==="
-  
+
   # Check container status
   if ssh ${SSH_USER:-pi}@${SSH_HOST} "docker ps | grep -q tabloCrawler"; then
     echo "✓ Container running"
   else
     echo "✗ Container not running - ALERT!"
   fi
-  
+
   # Check memory usage
   MEM_USAGE=$(ssh ${SSH_USER:-pi}@${SSH_HOST} "free | grep Mem | awk '{printf \"%.0f\", \$3/\$2 * 100.0}'")
   if [ "$MEM_USAGE" -gt 80 ]; then
@@ -66,7 +66,7 @@ while true; do
   else
     echo "✓ Memory usage: ${MEM_USAGE}%"
   fi
-  
+
   sleep ${HEALTH_CHECK_INTERVAL:-60}
 done
 ```
@@ -93,10 +93,10 @@ ssh ${SSH_USER:-pi}@${SSH_HOST} "docker logs tabloCrawler 2>&1 | grep -i '${patt
 ssh ${SSH_USER:-pi}@${SSH_HOST} "
   echo '=== Recent Error Patterns ==='
   docker logs --since 1h tabloCrawler 2>&1 | grep -i error | tail -10
-  
+
   echo '=== API Call Statistics ==='
   docker logs --since 1h tabloCrawler 2>&1 | grep -c 'API call' || echo 'No API calls found'
-  
+
   echo '=== Table Scan Results ==='
   docker logs --since 1h tabloCrawler 2>&1 | grep -i 'balanced table' | tail -5
 "
@@ -109,18 +109,18 @@ ssh ${SSH_USER:-pi}@${SSH_HOST} "
 LOG_DATE=$(date +%Y%m%d_%H%M%S)
 ssh ${SSH_USER:-pi}@${SSH_HOST} "
   mkdir -p /tmp/logs/${LOG_DATE}
-  
+
   # Application logs
   docker logs tabloCrawler > /tmp/logs/${LOG_DATE}/application.log 2>&1
-  
+
   # System logs
   journalctl --since '1 day ago' > /tmp/logs/${LOG_DATE}/system.log
-  
+
   # Docker logs
   docker system events --since 24h > /tmp/logs/${LOG_DATE}/docker.log 2>&1 &
   sleep 2
   kill %1 2>/dev/null
-  
+
   # Create archive
   tar -czf /tmp/tabloCrawler_logs_${LOG_DATE}.tar.gz /tmp/logs/${LOG_DATE}
   echo 'Logs archived to: /tmp/tabloCrawler_logs_${LOG_DATE}.tar.gz'
@@ -134,13 +134,13 @@ ssh ${SSH_USER:-pi}@${SSH_HOST} "
 ssh ${SSH_USER:-pi}@${SSH_HOST} "
   echo '=== Current Log Sizes ==='
   docker exec tabloCrawler du -sh /var/log/* 2>/dev/null || echo 'No log directory found'
-  
+
   echo '=== Rotating Docker Logs ==='
   docker logs tabloCrawler > /tmp/tabloCrawler_$(date +%Y%m%d).log 2>&1
-  
+
   echo '=== Cleaning Old Logs ==='
   find /tmp -name 'tabloCrawler_*.log' -mtime +7 -delete
-  
+
   echo '=== Docker System Cleanup ==='
   docker system prune -f --filter 'until=24h'
 "
@@ -155,13 +155,13 @@ ssh ${SSH_USER:-pi}@${SSH_HOST} "
 ssh ${SSH_USER:-pi}@${SSH_HOST} "
   echo '=== CPU Usage ==='
   top -bn1 | grep 'Cpu(s)' | awk '{print \$2}' | cut -d'%' -f1
-  
+
   echo '=== Memory Details ==='
   cat /proc/meminfo | grep -E 'MemTotal|MemFree|MemAvailable|Buffers|Cached'
-  
+
   echo '=== Disk I/O ==='
   iostat -x 1 1 2>/dev/null || echo 'iostat not available'
-  
+
   echo '=== Network Usage ==='
   cat /proc/net/dev | grep -E 'eth0|wlan0'
 "
@@ -174,10 +174,10 @@ ssh ${SSH_USER:-pi}@${SSH_HOST} "
 ssh ${SSH_USER:-pi}@${SSH_HOST} "
   echo '=== Container Resource Usage ==='
   docker stats --no-stream tabloCrawler
-  
+
   echo '=== Process Tree ==='
   docker exec tabloCrawler ps auxf
-  
+
   echo '=== Memory Map ==='
   docker exec tabloCrawler cat /proc/1/status | grep -E 'VmSize|VmRSS|VmData'
 "
@@ -191,7 +191,7 @@ echo "Testing API performance..."
 ssh ${SSH_USER:-pi}@${SSH_HOST} "
   echo '=== API Response Time Test ==='
   time docker exec tabloCrawler bun run src/index.ts users --id-ristorante 12345 --min-partecipazioni 1
-  
+
   echo '=== Multiple API Calls Test ==='
   for i in {1..5}; do
     echo \"Call \$i:\"
@@ -208,10 +208,10 @@ ssh ${SSH_USER:-pi}@${SSH_HOST} "
   echo '=== Memory Optimization ==='
   sync
   echo 3 > /proc/sys/vm/drop_caches 2>/dev/null || echo 'Cache drop requires sudo'
-  
+
   echo '=== Docker Optimization ==='
   docker system prune -f
-  
+
   echo '=== System Optimization ==='
   sudo apt autoremove -y 2>/dev/null || echo 'Package cleanup requires sudo'
 "
@@ -283,17 +283,17 @@ fi
 ssh ${SSH_USER:-pi}@${SSH_HOST} "
   echo '=== System Updates ==='
   sudo apt update && sudo apt list --upgradable
-  
+
   echo '=== Docker Maintenance ==='
   docker system df
   docker system prune -f --volumes
-  
+
   echo '=== Log Cleanup ==='
   journalctl --vacuum-time=7d
-  
+
   echo '=== Restart Services ==='
   docker restart tabloCrawler
-  
+
   echo 'Routine maintenance completed'
 "
 ```
@@ -305,10 +305,10 @@ ssh ${SSH_USER:-pi}@${SSH_HOST} "
 ssh ${SSH_USER:-pi}@${SSH_HOST} "
   echo '=== Application State Cleanup ==='
   docker exec tabloCrawler find /tmp -type f -mtime +1 -delete 2>/dev/null || echo 'No temp files to clean'
-  
+
   echo '=== Monitoring State Reset ==='
   docker exec tabloCrawler rm -f monitoring-state.json.tmp
-  
+
   echo 'Application state cleanup completed'
 "
 ```
@@ -324,10 +324,10 @@ if [ "$confirm" = "yes" ]; then
     sudo apt update
     sudo apt upgrade -y
     sudo apt autoremove -y
-    
+
     # Update Docker if needed
     docker --version
-    
+
     # Restart container with latest security patches
     docker pull ghcr.io/your-org/tabloCrawler:latest
     docker restart tabloCrawler
@@ -347,16 +347,16 @@ BACKUP_DATE=$(date +%Y%m%d_%H%M%S)
 ssh ${SSH_USER:-pi}@${SSH_HOST} "
   echo '=== Creating Backup ==='
   mkdir -p /backup/${BACKUP_DATE}
-  
+
   # Backup configuration
   cp -r /opt/tabloCrawler /backup/${BACKUP_DATE}/
-  
+
   # Backup application state
   docker exec tabloCrawler cp monitoring-state.json /tmp/monitoring-state-backup.json 2>/dev/null || echo 'No state file to backup'
-  
+
   # Create archive
   tar -czf /backup/tabloCrawler_${BACKUP_DATE}.tar.gz /backup/${BACKUP_DATE}
-  
+
   echo 'Backup created: /backup/tabloCrawler_${BACKUP_DATE}.tar.gz'
 "
 ```
@@ -368,7 +368,7 @@ ssh ${SSH_USER:-pi}@${SSH_HOST} "
 ssh ${SSH_USER:-pi}@${SSH_HOST} "
   echo '=== Backup Verification ==='
   ls -la /backup/*.tar.gz | tail -5
-  
+
   # Test latest backup
   LATEST_BACKUP=\$(ls -t /backup/*.tar.gz | head -1)
   if [ -n \"\$LATEST_BACKUP\" ]; then
@@ -391,17 +391,17 @@ ssh ${SSH_USER:-pi}@${SSH_HOST} "
   echo '=== System Information ==='
   uname -a
   cat /etc/os-release
-  
+
   echo '=== Hardware Information ==='
   lscpu | grep -E 'Model name|CPU\(s\)|Architecture'
   cat /proc/meminfo | grep MemTotal
-  
+
   echo '=== Network Configuration ==='
   ip addr show | grep -E 'inet |UP'
-  
+
   echo '=== Service Status ==='
   systemctl status docker --no-pager
-  
+
   echo '=== Recent System Errors ==='
   journalctl --since '1 hour ago' --priority=err --no-pager | tail -10
 "
@@ -414,13 +414,13 @@ ssh ${SSH_USER:-pi}@${SSH_HOST} "
 ssh ${SSH_USER:-pi}@${SSH_HOST} "
   echo '=== Container Diagnostics ==='
   docker inspect tabloCrawler | jq '.[] | {State, Config.Env, Mounts}'
-  
+
   echo '=== Application Environment ==='
   docker exec tabloCrawler env | grep -E 'TABLO|TELEGRAM|NODE'
-  
+
   echo '=== Application Files ==='
   docker exec tabloCrawler ls -la /app/
-  
+
   echo '=== Recent Application Activity ==='
   docker logs --since 30m tabloCrawler | tail -20
 "
@@ -433,13 +433,13 @@ ssh ${SSH_USER:-pi}@${SSH_HOST} "
 ssh ${SSH_USER:-pi}@${SSH_HOST} "
   echo '=== External Connectivity ==='
   ping -c 3 8.8.8.8
-  
+
   echo '=== API Connectivity ==='
   curl -I https://api.tabloapp.com --max-time 10
-  
+
   echo '=== DNS Resolution ==='
   nslookup api.tabloapp.com
-  
+
   echo '=== Container Network ==='
   docker network ls
   docker exec tabloCrawler netstat -tuln 2>/dev/null || echo 'netstat not available in container'

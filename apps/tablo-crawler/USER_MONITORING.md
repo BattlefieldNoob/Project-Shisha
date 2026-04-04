@@ -67,6 +67,7 @@ Use the provided VS Code launch configurations:
 5. **Watch Users - Manual Input (Fallback)**: Prompts for credentials if .env file is not available
 
 To use:
+
 1. Set up your `.env` file (see step 2 above)
 2. Open VS Code
 3. Go to Run and Debug (Ctrl+Shift+D)
@@ -103,41 +104,49 @@ Options:
 
 ## Environment Variables
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `TABLO_AUTH_TOKEN` | Your Tablo authentication token | Yes |
-| `TELEGRAM_BOT_TOKEN` | Telegram bot token for notifications | No |
-| `TELEGRAM_CHAT_ID` | Telegram chat ID for notifications | No |
-| `SEARCH_LATITUDE` | Search center latitude | No (default: 45.408153 - Padova) |
-| `SEARCH_LONGITUDE` | Search center longitude | No (default: 11.875273 - Padova) |
-| `SEARCH_RADIUS` | Search radius in km | No (default: 4) |
-| `USER_IDS_FILE_PATH` | Path to user IDs file | No (default: monitored-users.txt) |
-| `STATE_FILE_PATH` | Path to state file | No (default: monitoring-state.json) |
-| `MONITORING_INTERVAL_SECONDS` | Scan interval in seconds | No (default: 60) |
+| Variable                      | Description                          | Required                            |
+| ----------------------------- | ------------------------------------ | ----------------------------------- |
+| `TABLO_AUTH_TOKEN`            | Your Tablo authentication token      | Yes                                 |
+| `TELEGRAM_BOT_TOKEN`          | Telegram bot token for notifications | No                                  |
+| `TELEGRAM_CHAT_ID`            | Telegram chat ID for notifications   | No                                  |
+| `SEARCH_LATITUDE`             | Search center latitude               | No (default: 45.408153 - Padova)    |
+| `SEARCH_LONGITUDE`            | Search center longitude              | No (default: 11.875273 - Padova)    |
+| `SEARCH_RADIUS`               | Search radius in km                  | No (default: 4)                     |
+| `USER_IDS_FILE_PATH`          | Path to user IDs file                | No (default: monitored-users.txt)   |
+| `STATE_FILE_PATH`             | Path to state file                   | No (default: monitoring-state.json) |
+| `MONITORING_INTERVAL_SECONDS` | Scan interval in seconds             | No (default: 60)                    |
 
 ## Notification Types
 
 The service sends different types of notifications:
 
 ### 1. User Joined Table
+
 When a monitored user joins a table:
+
 - Shows user details (name, age, gender)
 - Lists other participants
 - Shows table statistics
 
 ### 2. User Left Table
+
 When a monitored user leaves a table:
+
 - Shows which user left
 - Shows restaurant and table information
 
 ### 3. Participant Changes
+
 When someone joins/leaves a table with monitored users:
+
 - Shows who joined/left
 - Lists monitored users still at the table
 - Shows current table composition
 
 ### 4. Table Updates
+
 When table details change (same participants, different info):
+
 - Shows updated table information
 - Lists monitored users at the table
 
@@ -157,6 +166,7 @@ When table details change (same participants, different info):
 ### State File (monitoring-state.json)
 
 The state file is automatically managed and contains:
+
 - Current table states with monitored users
 - List of monitored user IDs
 - Last scan timestamp
@@ -186,6 +196,7 @@ The state file is automatically managed and contains:
 ### Logs and Debugging
 
 The service provides detailed logging:
+
 - 🚀 Service startup information
 - 📅 Daily scan progress
 - 👥 Monitored users found in tables

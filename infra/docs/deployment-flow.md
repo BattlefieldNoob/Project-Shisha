@@ -14,6 +14,7 @@ This document describes the deployment process for applications in the "Project 
 ## CI/CD Configuration
 
 The CI/CD pipeline uses GitHub Actions with the following workflows:
+
 - `fuel-advisor-bot-ci.yml`: Builds and pushes image for fuel-advisor-bot
 - `tablo-crawler-ci.yml`: Builds and pushes image for tablo-crawler
 - `deploy-manual.yml`: Manual deployment workflow

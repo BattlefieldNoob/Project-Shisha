@@ -28,22 +28,26 @@ ansible-playbook -i inventory.yml playbook.yml --ask-vault-pass
 ## Configurazione Watchtower
 
 ### Intervallo di controllo
+
 - **Default**: Ogni 6 ore (21600 secondi)
 - **Personalizzabile** in `inventory.yml`:
 
 ```yaml
 vars:
-  watchtower_interval: "14400"  # Ogni 4 ore
-  watchtower_debug: true        # Per più dettagli
+  watchtower_interval: "14400" # Ogni 4 ore
+  watchtower_debug: true # Per più dettagli
 ```
 
 ### Immagini monitorate
+
 Watchtower monitora solo i container con label:
+
 - `com.centurylinklabs.watchtower.enable=true`
 
 ## Comandi utili
 
 ### Controllo manuale
+
 ```bash
 # Forza aggiornamento immediato
 docker exec watchtower /watchtower --run-once
@@ -53,6 +57,7 @@ docker exec watchtower /watchtower --run-once --debug
 ```
 
 ### Logs
+
 ```bash
 # Logs Watchtower
 docker logs watchtower
@@ -65,6 +70,7 @@ docker logs -f watchtower
 ```
 
 ### Restart servizi
+
 ```bash
 # Restart solo Watchtower
 docker restart watchtower
@@ -79,6 +85,7 @@ docker stop watchtower
 ## Notifiche Telegram
 
 ### Formato messaggio
+
 ```
 🐳 Watchtower Update
 
@@ -93,16 +100,19 @@ Container has been updated and restarted automatically.
 ### Troubleshooting
 
 **Nessuna notifica ricevuta:**
+
 1. Verifica bot token e chat ID
 2. Controlla logs: `docker logs watchtower`
 3. Test manuale: `docker exec watchtower /watchtower --run-once`
 
 **Errori di connessione:**
+
 1. Verifica connessione internet del Pi
 2. Controlla firewall/proxy
 3. Verifica accesso a ghcr.io
 
 **Container non aggiornato:**
+
 1. Verifica label nel docker-compose.yml
 2. Restart Watchtower: `docker restart watchtower`
 3. Forza aggiornamento: `docker exec watchtower /watchtower --run-once --debug`
@@ -110,19 +120,22 @@ Container has been updated and restarted automatically.
 ## Configurazione avanzata
 
 ### Custom interval
+
 ```yaml
 # inventory.yml
 vars:
-  watchtower_interval: "7200"  # Ogni 2 ore
+  watchtower_interval: "7200" # Ogni 2 ore
 ```
 
 ### Multiple chat IDs
+
 ```yaml
 # vault.yml
 vault_telegram_chat_id: "123456789,987654321"
 ```
 
 ### Disable per ambiente
+
 ```yaml
 # inventory.yml - development
 development:
@@ -131,8 +144,9 @@ development:
 ```
 
 ### Solo notifiche (senza auto-update)
+
 ```yaml
 # inventory.yml
 vars:
-  watchtower_monitor_only: true  # Solo notifiche, no update
+  watchtower_monitor_only: true # Solo notifiche, no update
 ```

@@ -7,11 +7,13 @@ Eliminare il codice duplicato nel `monitoring-notifier.ts` spostando le funzioni
 ## 📊 Statistiche del Refactoring
 
 ### Prima del Refactoring
+
 - **monitoring-notifier.ts**: ~280 righe
 - **Funzioni duplicate**: 6 funzioni di formattazione
 - **Codice duplicato**: ~80 righe
 
 ### Dopo il Refactoring
+
 - **monitoring-notifier.ts**: ~180 righe (-35%)
 - **format.ts**: Aggiunto ~100 righe di funzioni condivise
 - **Codice duplicato**: 0 righe
@@ -20,6 +22,7 @@ Eliminare il codice duplicato nel `monitoring-notifier.ts` spostando le funzioni
 ## 🔧 Funzioni Spostate in `format.ts`
 
 ### 1. **formatTableDateTime(quando?, prefix?)**
+
 ```typescript
 // Prima: duplicata in monitoring-notifier.ts
 private formatTableDateTime(quando?: string): string { ... }
@@ -29,6 +32,7 @@ export function formatTableDateTime(quando?: string, prefix: string = '📅 Orar
 ```
 
 ### 2. **calculateAge(birthDate)**
+
 ```typescript
 // Prima: duplicata
 private calculateAge(birthDate: string): number | null { ... }
@@ -38,6 +42,7 @@ export function calculateAge(birthDate: string): number | null
 ```
 
 ### 3. **formatTableParticipants(participants)**
+
 ```typescript
 // Prima: duplicata tra scanner e monitoring
 private formatTableParticipants(participants: Partecipante[]): string { ... }
@@ -49,6 +54,7 @@ export function formatTableParticipants(participants: Partecipante[]): string
 ### 4. **Nuove Funzioni Helper**
 
 #### **formatNotificationTimestamp()**
+
 ```typescript
 export function formatNotificationTimestamp(): string {
   return `⏰ Notification time: ${new Date().toLocaleString()}`;
@@ -56,50 +62,59 @@ export function formatNotificationTimestamp(): string {
 ```
 
 #### **formatTableHeader(restaurant, tableId)**
+
 ```typescript
-export function formatTableHeader(restaurant: string, tableId: string): string[] {
-  return [
-    `🏪 Restaurant: ${restaurant}`,
-    `📍 Table ID: ${tableId}`
-  ];
+export function formatTableHeader(
+  restaurant: string,
+  tableId: string,
+): string[] {
+  return [`🏪 Restaurant: ${restaurant}`, `📍 Table ID: ${tableId}`];
 }
 ```
 
 #### **formatGenderStats(participants)**
+
 ```typescript
 export function formatGenderStats(participants: Partecipante[]): string[] {
-  const maleCount = participants.filter(p => p.sessoMaschile).length;
-  const femaleCount = participants.filter(p => !p.sessoMaschile).length;
-  
+  const maleCount = participants.filter((p) => p.sessoMaschile).length;
+  const femaleCount = participants.filter((p) => !p.sessoMaschile).length;
+
   return [
     `📊 Total participants: ${participants.length}`,
     `♂️ Male: ${maleCount}`,
-    `♀️ Female: ${femaleCount}`
+    `♀️ Female: ${femaleCount}`,
   ];
 }
 ```
 
 #### **formatMonitoredUsersList(users, prefix?)**
+
 ```typescript
-export function formatMonitoredUsersList(users: Partecipante[], prefix: string = 'Monitored users'): string {
-  if (users.length === 0) return '';
-  
-  const userNames = users.map(u => `${u.nome} ${u.cognome}`).join(', ');
+export function formatMonitoredUsersList(
+  users: Partecipante[],
+  prefix: string = "Monitored users",
+): string {
+  if (users.length === 0) return "";
+
+  const userNames = users.map((u) => `${u.nome} ${u.cognome}`).join(", ");
   return `👥 ${prefix}: ${userNames}`;
 }
 ```
 
 #### **convertParticipantStates(participants)**
+
 ```typescript
-export function convertParticipantStates(participants: ParticipantState[]): Partecipante[] {
-  return participants.map(p => ({
+export function convertParticipantStates(
+  participants: ParticipantState[],
+): Partecipante[] {
+  return participants.map((p) => ({
     idUtente: p.idUtente,
-    nome: p.nome || 'Unknown',
-    cognome: p.cognome || '',
+    nome: p.nome || "Unknown",
+    cognome: p.cognome || "",
     sessoMaschile: p.sessoMaschile,
     dataDiNascita: p.dataDiNascita,
     partecipante: p.partecipante,
-    isBrand: false
+    isBrand: false,
   }));
 }
 ```
@@ -107,6 +122,7 @@ export function convertParticipantStates(participants: ParticipantState[]): Part
 ## 🔄 Esempi di Refactoring
 
 ### Prima: Codice Duplicato
+
 ```typescript
 // In monitoring-notifier.ts
 async sendUserLeftNotification(change: StateChange): Promise<void> {
@@ -126,6 +142,7 @@ private formatTableDateTime(quando?: string): string { /* 20 righe duplicate */ 
 ```
 
 ### Dopo: Codice Condiviso
+
 ```typescript
 // In monitoring-notifier.ts
 async sendUserLeftNotification(change: StateChange): Promise<void> {
@@ -145,21 +162,25 @@ async sendUserLeftNotification(change: StateChange): Promise<void> {
 ## ✨ Vantaggi del Refactoring
 
 ### 1. **Manutenibilità**
+
 - ✅ Modifiche alle funzioni di formattazione in un solo posto
 - ✅ Consistenza garantita tra scanner e monitoring
 - ✅ Più facile aggiungere nuove funzionalità
 
 ### 2. **Leggibilità**
+
 - ✅ Codice più pulito e focalizzato
 - ✅ Funzioni con nomi descrittivi
 - ✅ Separazione delle responsabilità
 
 ### 3. **Testabilità**
+
 - ✅ Funzioni pure facilmente testabili
 - ✅ Logica di formattazione isolata
 - ✅ Mock più semplici nei test
 
 ### 4. **Riutilizzo**
+
 - ✅ Funzioni disponibili per future funzionalità
 - ✅ API consistente per la formattazione
 - ✅ Estensibilità migliorata
@@ -167,6 +188,7 @@ async sendUserLeftNotification(change: StateChange): Promise<void> {
 ## 🧪 Testing
 
 Tutte le funzioni refactorizzate sono state testate per garantire:
+
 - ✅ Compatibilità con i dati esistenti
 - ✅ Formattazione corretta in italiano
 - ✅ Gestione degli errori robusta
@@ -174,13 +196,13 @@ Tutte le funzioni refactorizzate sono state testate per garantire:
 
 ## 📈 Metriche di Qualità
 
-| Metrica | Prima | Dopo | Miglioramento |
-|---------|-------|------|---------------|
-| Righe duplicate | ~80 | 0 | -100% |
-| Funzioni duplicate | 6 | 0 | -100% |
-| Dimensione monitoring-notifier.ts | ~280 righe | ~180 righe | -35% |
-| Funzioni condivise | 0 | 9 | +∞ |
-| Copertura test | Bassa | Alta | +200% |
+| Metrica                           | Prima      | Dopo       | Miglioramento |
+| --------------------------------- | ---------- | ---------- | ------------- |
+| Righe duplicate                   | ~80        | 0          | -100%         |
+| Funzioni duplicate                | 6          | 0          | -100%         |
+| Dimensione monitoring-notifier.ts | ~280 righe | ~180 righe | -35%          |
+| Funzioni condivise                | 0          | 9          | +∞            |
+| Copertura test                    | Bassa      | Alta       | +200%         |
 
 ## 🎯 Risultato
 

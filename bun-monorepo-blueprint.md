@@ -126,13 +126,13 @@ repo/
 
 ## Significato delle directory
 
-| Directory | Scopo | Regola pratica |
-|---|---|---|
-| `apps/` | Contiene il codice applicativo | Un'app = una cartella = un perimetro chiaro |
-| `packages/` | Librerie o configurazioni condivise | Crearla solo se la condivisione è reale |
-| `docker/` | Base image e script condivisi | Nessuna logica specifica di singola app |
-| `infra/` | Stack di macchina e documentazione operativa | Solo componenti trasversali |
-| `ansible/` | Provisioning e deploy | Una role comune, differenze dichiarative |
+| Directory   | Scopo                                        | Regola pratica                              |
+| ----------- | -------------------------------------------- | ------------------------------------------- |
+| `apps/`     | Contiene il codice applicativo               | Un'app = una cartella = un perimetro chiaro |
+| `packages/` | Librerie o configurazioni condivise          | Crearla solo se la condivisione è reale     |
+| `docker/`   | Base image e script condivisi                | Nessuna logica specifica di singola app     |
+| `infra/`    | Stack di macchina e documentazione operativa | Solo componenti trasversali                 |
+| `ansible/`  | Provisioning e deploy                        | Una role comune, differenze dichiarative    |
 
 Questa separazione aiuta molto gli agenti: il codice prodotto sta in `apps`, la logica infrastrutturale sta altrove, e ogni modifica ha un posto prevedibile.[cite:87][cite:99]
 
@@ -263,12 +263,12 @@ CMD ["/app/app"]
 
 ## Come scegliere tra safe e optimized
 
-| Scenario | Strategia |
-|---|---|
-| Progetto nuovo, in continua mutazione | `safe` [cite:123] |
-| Progetto semplice e già abbastanza stabile | `optimized` [cite:117][cite:120] |
-| Dubbi su compatibilità native/musl | `safe` [cite:118][cite:121][cite:126] |
-| Necessità di ridurre immagine e startup | `optimized` [cite:117][cite:120] |
+| Scenario                                   | Strategia                             |
+| ------------------------------------------ | ------------------------------------- |
+| Progetto nuovo, in continua mutazione      | `safe` [cite:123]                     |
+| Progetto semplice e già abbastanza stabile | `optimized` [cite:117][cite:120]      |
+| Dubbi su compatibilità native/musl         | `safe` [cite:118][cite:121][cite:126] |
+| Necessità di ridurre immagine e startup    | `optimized` [cite:117][cite:120]      |
 
 ## Compose: un file per app
 
@@ -398,10 +398,7 @@ Esempio semplice:
 {
   "name": "personal-platform",
   "private": true,
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
+  "workspaces": ["apps/*", "packages/*"],
   "scripts": {
     "dev:fuel-advisor-bot": "bun --cwd apps/fuel-advisor-bot run dev",
     "dev:tablo-crawler": "bun --cwd apps/tablo-crawler run dev",

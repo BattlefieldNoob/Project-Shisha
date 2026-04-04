@@ -20,12 +20,12 @@ Thank you for your interest in contributing to Project Shisha. This document out
 
 ### Prerequisites
 
-| Tool | Version | Purpose |
-|------|---------|---------|
-| Bun | ≥1.0 | Runtime and package manager |
-| Node.js | ≥18 | Runtime environment |
-| Docker | Latest | Containerization |
-| Ansible | 2.14+ | Deployment automation |
+| Tool    | Version | Purpose                     |
+| ------- | ------- | --------------------------- |
+| Bun     | ≥1.0    | Runtime and package manager |
+| Node.js | ≥18     | Runtime environment         |
+| Docker  | Latest  | Containerization            |
+| Ansible | 2.14+   | Deployment automation       |
 
 ### Initial Setup
 
@@ -76,15 +76,15 @@ project-shisha/
 
 Every app in `apps/` **must** include:
 
-| File | Purpose |
-|------|---------|
-| `README.md` | Application documentation |
-| `package.json` | Dependencies and scripts |
-| `Dockerfile` | Standard container (Bun runtime) |
-| `Dockerfile.optimized` | Optimized container (compiled) |
-| `compose.yml` | Docker Compose configuration |
-| `.env.example` | Environment variables template |
-| `deploy.vars.yml` | Deployment metadata |
+| File                   | Purpose                          |
+| ---------------------- | -------------------------------- |
+| `README.md`            | Application documentation        |
+| `package.json`         | Dependencies and scripts         |
+| `Dockerfile`           | Standard container (Bun runtime) |
+| `Dockerfile.optimized` | Optimized container (compiled)   |
+| `compose.yml`          | Docker Compose configuration     |
+| `.env.example`         | Environment variables template   |
+| `deploy.vars.yml`      | Deployment metadata              |
 
 ---
 
@@ -98,13 +98,13 @@ Every app in `apps/` **must** include:
 
 ### Naming Conventions
 
-| Element | Convention | Example |
-|---------|------------|---------|
-| Files | lowercase-with-dashes | `fuel-scraper.ts` |
-| Functions | camelCase | `getFuelPrices()` |
-| Classes | PascalCase | `FuelService` |
-| Constants | UPPER_SNAKE_CASE | `MAX_RETRY_COUNT` |
-| Interfaces | PascalCase | `FuelPrice` |
+| Element    | Convention            | Example           |
+| ---------- | --------------------- | ----------------- |
+| Files      | lowercase-with-dashes | `fuel-scraper.ts` |
+| Functions  | camelCase             | `getFuelPrices()` |
+| Classes    | PascalCase            | `FuelService`     |
+| Constants  | UPPER_SNAKE_CASE      | `MAX_RETRY_COUNT` |
+| Interfaces | PascalCase            | `FuelPrice`       |
 
 ### Code Style
 
@@ -139,6 +139,7 @@ function calculateAverage(prices: FuelStation[]): number {
 ```
 
 **Types:**
+
 - `feature/` - New functionality
 - `fix/` - Bug fixes
 - `refactor/` - Code refactoring
@@ -146,6 +147,7 @@ function calculateAverage(prices: FuelStation[]): number {
 - `chore/` - Maintenance tasks
 
 **Examples:**
+
 - `feature/123-add-fuel-history`
 - `fix/456-telegram-connection-timeout`
 
@@ -160,6 +162,7 @@ function calculateAverage(prices: FuelStation[]): number {
 **Types:** `feat`, `fix`, `refactor`, `docs`, `chore`, `test`
 
 **Example:**
+
 ```
 feat(fuel-scraper): add MIMIT API integration
 
@@ -183,10 +186,10 @@ Implemented rate limiting to respect API quotas.
 
 ### Dockerfile Strategy
 
-| Strategy | File | Use When |
-|----------|------|----------|
-| **Safe** | `Dockerfile` | App in development, complex dependencies |
-| **Optimized** | `Dockerfile.optimized` | Stable app, minimal image size |
+| Strategy      | File                   | Use When                                 |
+| ------------- | ---------------------- | ---------------------------------------- |
+| **Safe**      | `Dockerfile`           | App in development, complex dependencies |
+| **Optimized** | `Dockerfile.optimized` | Stable app, minimal image size           |
 
 ### Deploy via Ansible
 
@@ -214,6 +217,7 @@ mkdir -p apps/new-app/src
 ### Step 2: Create Mandatory Files
 
 Create following existing patterns:
+
 - `package.json` - Use workspace naming
 - `Dockerfile` / `Dockerfile.optimized` - Copy from existing app
 - `compose.yml` - Adjust ports/labels
@@ -236,4 +240,4 @@ Copy existing workflow and adjust.
 
 ---
 
-*Last updated: 2026-04-04*
+_Last updated: 2026-04-04_

@@ -12,6 +12,7 @@ This is the "Project Shisha" monorepo structure for Bun/Node applications with D
 ## Development Setup
 
 ### Prerequisites
+
 - Bun 1.0 or higher
 - Node.js 18 or higher
 
@@ -58,6 +59,7 @@ bun run test:tablo-crawler
 ## Application Details
 
 ### Fuel Advisor Bot (`apps/fuel-advisor-bot`)
+
 - Uses `node-telegram-bot-api` for Telegram integration
 - Scrapes fuel prices from MIMIT (Italian fuel price database)
 - Stores data in a local SQLite database
@@ -68,6 +70,7 @@ bun run test:tablo-crawler
   - User-friendly chat interface
 
 ### Tablo Crawler (`apps/tablo-crawler`)
+
 - A simple crawler application
 - Uses Bun for execution
 - Dockerized for deployment
@@ -75,6 +78,7 @@ bun run test:tablo-crawler
 ## Deployment
 
 Both applications follow a consistent deployment pattern:
+
 1. Update `deploy.vars.yml` with configuration
 2. Build the Docker image:
    ```bash
@@ -92,4 +96,5 @@ Each application has its own `.env.example` file that should be copied to `.env`
 ## Testing
 
 Each application has a test script defined in its package.json:
+
 - `bun run test` in the app directory

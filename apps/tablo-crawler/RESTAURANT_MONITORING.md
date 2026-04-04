@@ -24,6 +24,7 @@ TabloCrawler supports two complementary monitoring modes:
 ### Dual Operation
 
 Both monitoring modes can run simultaneously:
+
 - Shared state management and notification services
 - Independent change detection logic
 - Cross-referenced notifications (indicates when participants are monitored users)
@@ -49,6 +50,7 @@ Create a `monitored-restaurants.txt` file in the project root:
 ```
 
 **File Format Rules:**
+
 - One restaurant ID per line
 - Full-line comments: Lines starting with `#`
 - Inline comments: Text after `#` on the same line as a restaurant ID
@@ -59,6 +61,7 @@ Create a `monitored-restaurants.txt` file in the project root:
 ### Finding Restaurant IDs
 
 Restaurant IDs can be found:
+
 1. From Tablo API responses when scanning tables
 2. Using the `users` command to list users for a restaurant
 3. From the Tablo web application URL (if available)
@@ -97,6 +100,7 @@ Restaurant monitoring sends notifications for five types of events:
 Sent when a new table appears in a monitored restaurant.
 
 **Example:**
+
 ```
 🆕 NEW TABLE CREATED IN MONITORED RESTAURANT
 
@@ -117,6 +121,7 @@ Sent when a new table appears in a monitored restaurant.
 ```
 
 **Contains:**
+
 - Restaurant name and table ID
 - Scheduled date and time
 - Complete participant list with confirmation status
@@ -128,6 +133,7 @@ Sent when a new table appears in a monitored restaurant.
 Sent when a participant joins an existing table in a monitored restaurant.
 
 **Example:**
+
 ```
 ➕ PARTICIPANT JOINED TABLE
 
@@ -152,6 +158,7 @@ Sent when a participant joins an existing table in a monitored restaurant.
 ```
 
 **Contains:**
+
 - New participant details
 - Monitored user status (🔔 if they're in monitored-users.txt)
 - Updated participant list
@@ -159,6 +166,7 @@ Sent when a participant joins an existing table in a monitored restaurant.
 - Detection timestamp
 
 **Aggregation:**
+
 - Multiple participants joining in the same scan are included in a single notification
 - Each participant is listed separately
 
@@ -167,6 +175,7 @@ Sent when a participant joins an existing table in a monitored restaurant.
 Sent when a participant leaves a table in a monitored restaurant.
 
 **Example:**
+
 ```
 ➖ PARTICIPANT LEFT TABLE
 
@@ -190,6 +199,7 @@ Sent when a participant leaves a table in a monitored restaurant.
 ```
 
 **Contains:**
+
 - Departed participant details
 - Monitored user status
 - Remaining participant list
@@ -197,6 +207,7 @@ Sent when a participant leaves a table in a monitored restaurant.
 - Detection timestamp
 
 **Aggregation:**
+
 - Multiple participants leaving in the same scan are included in a single notification
 - Each departed participant is listed separately
 
@@ -205,6 +216,7 @@ Sent when a participant leaves a table in a monitored restaurant.
 Sent when a table disappears before its scheduled time.
 
 **Example:**
+
 ```
 ❌ TABLE CANCELLED
 
@@ -216,11 +228,13 @@ Sent when a table disappears before its scheduled time.
 ```
 
 **Contains:**
+
 - Restaurant name and table ID
 - Original scheduled date and time
 - Detection timestamp
 
 **Grace Period Protection:**
+
 - Tables aren't immediately marked as cancelled when they disappear
 - System waits for a configurable grace period (default: 3 scans)
 - Prevents false notifications from temporary API issues
@@ -231,6 +245,7 @@ Sent when a table disappears before its scheduled time.
 Sent when a table disappears after its scheduled time.
 
 **Example:**
+
 ```
 ✅ TABLE FINISHED
 
@@ -242,6 +257,7 @@ Sent when a table disappears after its scheduled time.
 ```
 
 **Contains:**
+
 - Restaurant name and table ID
 - Original scheduled date and time
 - Detection timestamp
@@ -301,6 +317,7 @@ The system maintains state in `monitoring-state.json`:
 ```
 
 **State Fields:**
+
 - `restaurantTables`: All tables in monitored restaurants
 - `monitoredRestaurants`: List of restaurant IDs being monitored
 - `monitoredUsers`: List of user IDs being monitored (for cross-reference)
@@ -314,11 +331,13 @@ The system maintains state in `monitoring-state.json`:
 Restaurant and user monitoring provide different views of the same data:
 
 **User Monitoring:**
+
 - "Where is this person dining?"
 - "Who joined a table with my friend?"
 - Follows specific individuals
 
 **Restaurant Monitoring:**
+
 - "What's happening at this restaurant?"
 - "Who's dining here tonight?"
 - Tracks venue activity
@@ -326,23 +345,27 @@ Restaurant and user monitoring provide different views of the same data:
 ### Cross-Referenced Notifications
 
 When a table involves both a monitored restaurant and a monitored user:
+
 - Both monitoring systems detect the event
 - Each sends its own notification with appropriate context
 - Restaurant notifications include 🔔 indicator for monitored users
 - User notifications include restaurant information
 
 **Example Scenario:**
+
 - Restaurant "Trattoria da Mario" (ID: 12345) is monitored
 - User "Sofia Romano" (ID: 210340) is monitored
 - Sofia joins a table at Trattoria da Mario
 
 **Result:**
+
 1. Restaurant monitoring sends: "Participant joined table at Trattoria da Mario (🔔 Monitored User)"
 2. User monitoring sends: "Sofia Romano joined a table at Trattoria da Mario"
 
 ### Shared Infrastructure
 
 Both monitoring modes share:
+
 - State file (`monitoring-state.json`)
 - Notification services (Telegram and Console)
 - API client and retry logic
@@ -354,11 +377,13 @@ Both monitoring modes share:
 ### API Failures
 
 **Behavior:**
+
 - Failed API calls are automatically retried with exponential backoff
 - If a restaurant query fails, the system logs the error and continues with other restaurants
 - Monitoring continues even if some restaurants are temporarily unavailable
 
 **Configuration:**
+
 ```bash
 export MAX_RETRIES=3
 export RETRY_DELAY_MS=1000
@@ -368,16 +393,19 @@ export RETRY_BACKOFF_MULTIPLIER=2
 ### File Errors
 
 **Missing Restaurant File:**
+
 - System creates a template file with instructions
 - Continues with empty restaurant list
 - Logs informational message
 
 **Unreadable Restaurant File:**
+
 - Logs error with details
 - Continues with empty restaurant list
 - Monitoring continues normally
 
 **Invalid Restaurant IDs:**
+
 - Invalid entries are skipped with warnings
 - Valid entries are processed normally
 - System continues monitoring
@@ -385,18 +413,21 @@ export RETRY_BACKOFF_MULTIPLIER=2
 ### State File Corruption
 
 **Behavior:**
+
 - If state file is corrupted or invalid JSON, system starts with fresh state
 - Logs warning message
 - Monitoring continues normally
 - All tables will be detected as "new" on first scan
 
 **Prevention:**
+
 - Atomic file operations prevent corruption during writes
 - Temporary file used during save, then renamed
 
 ### Notification Failures
 
 **Behavior:**
+
 - If Telegram notification fails, error is logged
 - Console output continues normally
 - Monitoring continues without interruption
@@ -406,6 +437,7 @@ export RETRY_BACKOFF_MULTIPLIER=2
 ### No Notifications Received
 
 **Check:**
+
 1. Verify `monitored-restaurants.txt` exists and contains valid IDs
 2. Ensure restaurant IDs are not commented out
 3. Check that restaurants have table activity during monitoring period
@@ -413,6 +445,7 @@ export RETRY_BACKOFF_MULTIPLIER=2
 5. Verify Telegram configuration (if using Telegram notifications)
 
 **Debug:**
+
 ```bash
 # Enable detailed logging
 export LOGGING_ENABLED=true
@@ -428,10 +461,12 @@ curl -H "X-AUTH-TOKEN: your_token" \
 ### Duplicate Notifications
 
 **Expected Behavior:**
+
 - When a table involves both a monitored restaurant and a monitored user, you'll receive notifications from both systems
 - This is intentional and provides different perspectives
 
 **If Unwanted:**
+
 - Remove restaurant from `monitored-restaurants.txt`, OR
 - Remove user from `monitored-users.txt`
 - Keep only one monitoring mode active
@@ -439,6 +474,7 @@ curl -H "X-AUTH-TOKEN: your_token" \
 ### Missing Template File
 
 **Solution:**
+
 - The system automatically creates `monitored-restaurants.txt` if it doesn't exist
 - Edit the template and add your restaurant IDs
 - Restart monitoring or wait for next scan
@@ -446,10 +482,12 @@ curl -H "X-AUTH-TOKEN: your_token" \
 ### Invalid Restaurant IDs
 
 **Symptoms:**
+
 - Console warnings about invalid entries
 - Restaurants not being monitored
 
 **Solution:**
+
 1. Check console logs for specific error messages
 2. Verify restaurant IDs are non-empty strings
 3. Remove special characters or extra whitespace
@@ -459,16 +497,19 @@ curl -H "X-AUTH-TOKEN: your_token" \
 ### State File Issues
 
 **Symptoms:**
+
 - All tables detected as "new" on every scan
 - Duplicate notifications for same events
 
 **Solution:**
+
 1. Check `monitoring-state.json` exists and is readable
 2. Verify JSON is valid (use a JSON validator)
 3. Check file permissions
 4. If corrupted, delete file and let system create fresh state
 
 **Manual Reset:**
+
 ```bash
 # Backup current state
 cp monitoring-state.json monitoring-state.json.backup
@@ -485,11 +526,13 @@ bun run src/index.ts watch-users
 ### Restaurant Selection
 
 **Choose restaurants that:**
+
 - Have regular table activity
 - Are relevant to your interests
 - Have sufficient API data quality
 
 **Avoid:**
+
 - Monitoring too many restaurants (increases API load)
 - Inactive or closed restaurants
 - Restaurants with unreliable data
@@ -497,12 +540,14 @@ bun run src/index.ts watch-users
 ### File Management
 
 **Do:**
+
 - Use comments to document why each restaurant is monitored
 - Keep the file organized and readable
 - Use inline comments for temporary notes
 - Commit the file to version control (if appropriate)
 
 **Don't:**
+
 - Leave invalid IDs in the file
 - Use special characters in comments
 - Create extremely long files (performance impact)
@@ -510,12 +555,14 @@ bun run src/index.ts watch-users
 ### Monitoring Strategy
 
 **Recommended:**
+
 - Start with a small number of restaurants (3-5)
 - Monitor restaurants with regular activity
 - Use both user and restaurant monitoring for comprehensive coverage
 - Review notifications regularly and adjust restaurant list
 
 **Advanced:**
+
 - Use different restaurant files for different purposes
 - Rotate monitored restaurants based on season or events
 - Combine with user monitoring for specific scenarios
@@ -523,12 +570,14 @@ bun run src/index.ts watch-users
 ### Performance Optimization
 
 **For many restaurants:**
+
 - Increase scan interval to reduce API load
 - Monitor fewer days ahead
 - Use grace period to reduce false notifications
 - Consider splitting into multiple monitoring instances
 
 **Configuration:**
+
 ```bash
 export INTERVAL_SECONDS=600  # 10 minutes instead of 5
 export DAYS_TO_SCAN=2        # 2 days instead of 3
@@ -566,11 +615,13 @@ sed -i 's/^12345/# 12345/' monitored-restaurants.txt
 ### Integration with Other Tools
 
 **Export notifications to other systems:**
+
 - Parse console output
 - Forward Telegram messages
 - Use webhooks (requires custom implementation)
 
 **Automated restaurant discovery:**
+
 - Use the `users` command to find active restaurants
 - Analyze table data to identify popular venues
 - Add promising restaurants to monitoring list
@@ -636,6 +687,7 @@ rm temp-restaurants.txt
 Restaurant monitoring provides comprehensive tracking of table activity within specific venues on the Tablo platform. It complements user monitoring by offering a restaurant-centric perspective, enabling you to stay informed about all dining activity at your favorite locations.
 
 **Key Benefits:**
+
 - Track all tables at specific restaurants
 - Monitor participant changes in real-time
 - Receive notifications for new tables and cancellations
@@ -643,6 +695,7 @@ Restaurant monitoring provides comprehensive tracking of table activity within s
 - Flexible configuration and error handling
 
 **Getting Started:**
+
 1. Create `monitored-restaurants.txt` with restaurant IDs
 2. Configure environment variables (auth token, Telegram)
 3. Run `bun run src/index.ts watch-users`

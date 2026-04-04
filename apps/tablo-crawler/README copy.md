@@ -26,48 +26,55 @@ A fast TypeScript + Bun CLI that monitors the Tablo social platform API with int
 ## � Smart Filtering Logic
 
 ### Gender Balance Examples
-| Participants | Action | Reason |
-|-------------|---------|---------|
-| 3👨 / 3👩 | ✅ **SENT** | Perfect balance |
-| 4👨 / 3👩 | ✅ **SENT** | 1 person difference (tolerance) |
-| 2👨 / 3👩 | ✅ **SENT** | 1 person difference (tolerance) |
-| 5👨 / 2👩 | ❌ **SKIPPED** | 3 person difference (too unbalanced) |
-| 1👨 / 4👩 | ❌ **SKIPPED** | 3 person difference (too unbalanced) |
-| 1👨 only | ⏭️ **SKIPPED** | Below minimum participants |
+
+| Participants | Action         | Reason                               |
+| ------------ | -------------- | ------------------------------------ |
+| 3👨 / 3👩    | ✅ **SENT**    | Perfect balance                      |
+| 4👨 / 3👩    | ✅ **SENT**    | 1 person difference (tolerance)      |
+| 2👨 / 3👩    | ✅ **SENT**    | 1 person difference (tolerance)      |
+| 5👨 / 2👩    | ❌ **SKIPPED** | 3 person difference (too unbalanced) |
+| 1👨 / 4👩    | ❌ **SKIPPED** | 3 person difference (too unbalanced) |
+| 1👨 only     | ⏭️ **SKIPPED** | Below minimum participants           |
 
 ### Multi-Day Scanning
+
 - **Day +1**: Tomorrow
-- **Day +2**: Day after tomorrow  
+- **Day +2**: Day after tomorrow
 - **Day +3**: Three days from now
 - **Configurable**: Adjust via `DAYS_TO_SCAN` (1-7 days)
 
 ### 🛡️ Reliability Features
 
 #### Automatic Retry System
+
 - **Smart Retries**: Automatically retries failed API calls with exponential backoff
 - **Configurable**: Adjust retry count, delay, and backoff multiplier
 - **Intelligent**: Only retries on specific error conditions, not on legitimate empty results
 
 #### Grace Period Protection
+
 - **Problem Solved**: Prevents false "table cancelled" notifications when API temporarily returns empty results
 - **How it Works**: Tables that disappear are marked as "suspicious" and monitored for several scans
 - **Smart Recovery**: If a table reappears during the grace period, no false notifications are sent
 - **Configurable**: Adjust grace period length via `GRACE_PERIOD_SCANS`
 
 #### Example Scenarios
-| Scenario | Without Grace Period | With Grace Period |
-|----------|---------------------|-------------------|
+
+| Scenario                      | Without Grace Period               | With Grace Period                  |
+| ----------------------------- | ---------------------------------- | ---------------------------------- |
 | API returns empty temporarily | ❌ False cancellation notification | ✅ No notification, table recovers |
-| Table actually cancelled | ✅ Immediate notification | ✅ Notification after grace period |
-| API fails completely | ❌ Scan fails | ✅ Automatic retry with backoff |
+| Table actually cancelled      | ✅ Immediate notification          | ✅ Notification after grace period |
+| API fails completely          | ❌ Scan fails                      | ✅ Automatic retry with backoff    |
 
 #### Heartbeat Notifications
+
 - **Problem Solved**: Know when the system is still running even during long periods without balanced tables
 - **How it Works**: Sends a periodic "system alive" message after a configurable interval (default: 2 days)
 - **Smart Reset**: Timer resets whenever any notification is sent (balanced table or heartbeat)
 - **Configurable**: Adjust interval via `HEARTBEAT_INTERVAL_DAYS` (1-7 days)
 
 **Heartbeat Message Format:**
+
 ```
 💓 Sistema Attivo - Heartbeat
 🕐 Data/Ora: 2024-01-15 14:30:00
@@ -82,6 +89,7 @@ In addition to monitoring specific users across all restaurants, TabloCrawler ca
 ### How It Works
 
 Restaurant monitoring operates in parallel with user monitoring:
+
 - **User Monitoring**: Tracks specific users across all restaurants
 - **Restaurant Monitoring**: Tracks all participants and tables within specific restaurants
 - **Dual Notifications**: When a table involves both a monitored restaurant and a monitored user, you'll receive notifications for both contexts
@@ -100,6 +108,7 @@ Create a `monitored-restaurants.txt` file in the project root with restaurant ID
 ```
 
 **File Format Rules:**
+
 - One restaurant ID per line
 - Lines starting with `#` are ignored (comments)
 - Inline comments after `#` are supported
@@ -140,6 +149,7 @@ export USER_IDS_FILE_PATH="monitored-users.txt"
 Restaurant monitoring sends notifications for these events:
 
 **1. New Table Created**
+
 ```
 🆕 NEW TABLE CREATED IN MONITORED RESTAURANT
 
@@ -160,6 +170,7 @@ Restaurant monitoring sends notifications for these events:
 ```
 
 **2. Participant Joined**
+
 ```
 ➕ PARTICIPANT JOINED TABLE
 
@@ -184,6 +195,7 @@ Restaurant monitoring sends notifications for these events:
 ```
 
 **3. Participant Left**
+
 ```
 ➖ PARTICIPANT LEFT TABLE
 
@@ -207,6 +219,7 @@ Restaurant monitoring sends notifications for these events:
 ```
 
 **4. Table Cancelled/Finished**
+
 ```
 ❌ TABLE CANCELLED
 
@@ -251,20 +264,24 @@ bun run src/index.ts watch-users
 ### Troubleshooting Restaurant Monitoring
 
 **No restaurant notifications:**
+
 - Verify `monitored-restaurants.txt` exists and contains valid restaurant IDs
 - Check that restaurant IDs are not commented out
 - Ensure restaurants have table activity during the monitoring period
 - Review console logs for parsing errors
 
 **Duplicate notifications:**
+
 - This is expected when a table involves both a monitored restaurant and a monitored user
 - Each notification provides different context (user-centric vs restaurant-centric)
 
 **Missing template file:**
+
 - If `monitored-restaurants.txt` doesn't exist, the system creates a template automatically
 - Edit the template file and add your restaurant IDs
 
 **Invalid restaurant IDs:**
+
 - Check console logs for warnings about invalid entries
 - Ensure IDs are non-empty strings (typically numeric)
 - Remove any special characters or extra whitespace
@@ -299,6 +316,7 @@ Integrates with Tablo API (https://api.tabloapp.com) to:
    - For each participant: gender (`sessoMaschile`), name (`nome`, `cognome`), birth year (`dataDiNascita`)
 
 ### API Configuration
+
 - Host: `https://api.tabloapp.com`
 - Authentication: `X-AUTH-TOKEN` header (your Tablo auth token)
 - Location: Padova area (45.408153, 11.875273) with 4km radius (in code)
@@ -308,36 +326,38 @@ Integrates with Tablo API (https://api.tabloapp.com) to:
 
 ### Complete Configuration Table
 
-| Setting | Environment Variable | Config File | CLI Argument | Default | Description |
-|---------|---------------------|-------------|--------------|---------|-------------|
-| **API Settings** | | | | | |
-| Base URL | `API_BASE_URL` | — | `--api.base.url` | `https://api.tabloapp.com` | Tablo API base URL |
-| Auth Token | `TABLO_AUTH_TOKEN` | — | `--auth.token` | Required | Your Tablo authentication token |
-| **Scanning Behavior** | | | | | |
-| Scan Interval | `INTERVAL_SECONDS` | — | — | `300` | Seconds between scans (5 minutes) |
-| Days to Scan | `DAYS_TO_SCAN` | — | `--days` | `3` | Number of days to scan from tomorrow |
-| Min Participants | `MIN_PARTICIPANTS` | — | `--min-participants` | `2` | Minimum people required per table |
-| Max Distance | `MAX_DISTANCE` | — | `--max-distance` | `10.0` | Maximum distance in km to consider |
-| **Telegram Settings** | | | | | |
-| Bot Token | `TELEGRAM_BOT_TOKEN` | — | `--telegram.bot.token` | Optional | Telegram bot token from @BotFather |
-| Chat ID | `TELEGRAM_CHAT_ID` | — | `--telegram.chat.id` | Optional | Your Telegram chat ID |
-| Enable Notifications | `TELEGRAM_NOTIFICATIONS_ENABLED` | — | — | `true` | Enable/disable Telegram messages |
-| **Logging** | | | | | |
-| Enable Logging | `LOGGING_ENABLED` | — | — | `true` | Enable detailed console output |
-| **Reliability Settings** | | | | | |
-| Max Retries | `MAX_RETRIES` | — | — | `3` | Maximum API retry attempts |
-| Retry Delay | `RETRY_DELAY_MS` | — | — | `1000` | Initial retry delay in milliseconds |
-| Retry Backoff | `RETRY_BACKOFF_MULTIPLIER` | — | — | `2` | Exponential backoff multiplier |
-| Grace Period | `GRACE_PERIOD_SCANS` | — | — | `3` | Scans to wait before confirming table cancellation |
-| **Heartbeat Settings** | | | | | |
-| Heartbeat Interval | `HEARTBEAT_INTERVAL_DAYS` | — | — | `2` | Days between heartbeat messages (1-7) |
-| **Restaurant Monitoring** | | | | | |
-| Restaurant IDs File | `RESTAURANT_IDS_FILE_PATH` | — | `--restaurant-ids-file` | `monitored-restaurants.txt` | Path to file containing restaurant IDs to monitor |
+| Setting                   | Environment Variable             | Config File | CLI Argument            | Default                     | Description                                        |
+| ------------------------- | -------------------------------- | ----------- | ----------------------- | --------------------------- | -------------------------------------------------- |
+| **API Settings**          |                                  |             |                         |                             |                                                    |
+| Base URL                  | `API_BASE_URL`                   | —           | `--api.base.url`        | `https://api.tabloapp.com`  | Tablo API base URL                                 |
+| Auth Token                | `TABLO_AUTH_TOKEN`               | —           | `--auth.token`          | Required                    | Your Tablo authentication token                    |
+| **Scanning Behavior**     |                                  |             |                         |                             |                                                    |
+| Scan Interval             | `INTERVAL_SECONDS`               | —           | —                       | `300`                       | Seconds between scans (5 minutes)                  |
+| Days to Scan              | `DAYS_TO_SCAN`                   | —           | `--days`                | `3`                         | Number of days to scan from tomorrow               |
+| Min Participants          | `MIN_PARTICIPANTS`               | —           | `--min-participants`    | `2`                         | Minimum people required per table                  |
+| Max Distance              | `MAX_DISTANCE`                   | —           | `--max-distance`        | `10.0`                      | Maximum distance in km to consider                 |
+| **Telegram Settings**     |                                  |             |                         |                             |                                                    |
+| Bot Token                 | `TELEGRAM_BOT_TOKEN`             | —           | `--telegram.bot.token`  | Optional                    | Telegram bot token from @BotFather                 |
+| Chat ID                   | `TELEGRAM_CHAT_ID`               | —           | `--telegram.chat.id`    | Optional                    | Your Telegram chat ID                              |
+| Enable Notifications      | `TELEGRAM_NOTIFICATIONS_ENABLED` | —           | —                       | `true`                      | Enable/disable Telegram messages                   |
+| **Logging**               |                                  |             |                         |                             |                                                    |
+| Enable Logging            | `LOGGING_ENABLED`                | —           | —                       | `true`                      | Enable detailed console output                     |
+| **Reliability Settings**  |                                  |             |                         |                             |                                                    |
+| Max Retries               | `MAX_RETRIES`                    | —           | —                       | `3`                         | Maximum API retry attempts                         |
+| Retry Delay               | `RETRY_DELAY_MS`                 | —           | —                       | `1000`                      | Initial retry delay in milliseconds                |
+| Retry Backoff             | `RETRY_BACKOFF_MULTIPLIER`       | —           | —                       | `2`                         | Exponential backoff multiplier                     |
+| Grace Period              | `GRACE_PERIOD_SCANS`             | —           | —                       | `3`                         | Scans to wait before confirming table cancellation |
+| **Heartbeat Settings**    |                                  |             |                         |                             |                                                    |
+| Heartbeat Interval        | `HEARTBEAT_INTERVAL_DAYS`        | —           | —                       | `2`                         | Days between heartbeat messages (1-7)              |
+| **Restaurant Monitoring** |                                  |             |                         |                             |                                                    |
+| Restaurant IDs File       | `RESTAURANT_IDS_FILE_PATH`       | —           | `--restaurant-ids-file` | `monitored-restaurants.txt` | Path to file containing restaurant IDs to monitor  |
 
 ### Configuration Examples
 
 #### Basic Setup (Environment Variables)
+
 PowerShell (Windows):
+
 ```powershell
 $env:TABLO_AUTH_TOKEN = "your_auth_token_here"
 $env:TELEGRAM_BOT_TOKEN = "your_bot_token"
@@ -348,6 +368,7 @@ $env:HEARTBEAT_INTERVAL_DAYS = "2"  # Send heartbeat every 2 days
 ```
 
 Bash (Linux/macOS):
+
 ```bash
 export TABLO_AUTH_TOKEN="your_auth_token_here"
 export TELEGRAM_BOT_TOKEN="your_bot_token"
@@ -358,9 +379,11 @@ export HEARTBEAT_INTERVAL_DAYS="2"
 ```
 
 #### Command Line Options
+
 Use CLI flags to override env values.
 
 Examples:
+
 ```bash
 bun run src/index.ts scan --days 5 --min-participants 3 --auth.token YOUR_TOKEN
 bun run src/index.ts users --id-ristorante 12345 --min-partecipazioni 2 --auth.token YOUR_TOKEN
@@ -414,6 +437,7 @@ bun run users -- --id-ristorante 12345 --min-partecipazioni 2
 - Users listing: `bun run users -- --id-ristorante <id> [--min-partecipazioni <n>]`
 
 Notes:
+
 - Users listing runs once and exits (no interval loop)
 - `--id-ristorante` is required for users listing
 - `--min-partecipazioni` is optional; if omitted, all users returned by the API are shown
@@ -438,6 +462,7 @@ bun run users -- --id-ristorante 12345 --min-partecipazioni 1
 The application generates intelligent reports with gender balance filtering:
 
 ### Console Output
+
 ```
 TabloCrawler - Bun Edition
 ⏰ Inizio scansione tavoli...
@@ -450,7 +475,7 @@ TabloCrawler - Bun Edition
 � Data: 2025-07-22
 �👥 Partecipanti (6):
   👨 Fratelli Capone (1999)
-  👨 Davide Capone (1999)  
+  👨 Davide Capone (1999)
   👩 Annalisa Mancuso (1999)
   👨 Giuseppe Falciglia (1998)
   👨 Marco Di Benedetto (1995)
@@ -484,6 +509,7 @@ TabloCrawler - Bun Edition
 ```
 
 ### Telegram Notifications (Filtered)
+
 Only balanced tables are sent to Telegram:
 
 ```
@@ -499,6 +525,7 @@ Only balanced tables are sent to Telegram:
 ```
 
 Or when no balanced tables are found:
+
 ```
 ⚖️ Nessun tavolo con equilibrio di genere trovato nei prossimi 3 giorni. Trovati 8 tavoli totali.
 ```
@@ -507,7 +534,7 @@ Or when no balanced tables are found:
 
 1. **Create a Bot**: Message [@BotFather](https://t.me/BotFather) on Telegram
 2. **Get Bot Token**: Follow BotFather's instructions to create a bot and get the token
-3. **Get Chat ID**: 
+3. **Get Chat ID**:
    - Start a conversation with your bot
    - Send a message to your bot
    - Visit `https://api.telegram.org/bot<YOUR_BOT_TOKEN>/getUpdates`
@@ -651,11 +678,13 @@ bun run users -- --id-ristorante 12345 --min-partecipazioni 2
 ### Debug Mode
 
 Enable detailed logging by setting:
+
 ```bash
 export LOGGING_ENABLED=true
 ```
 
 This will show:
+
 - HTTP request/response details
 - Table filtering decisions
 - Gender balance calculations
@@ -676,6 +705,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## 📞 Support
 
 For issues and questions:
+
 1. Check the troubleshooting section
 2. Review existing GitHub issues
 3. Create a new issue with detailed information

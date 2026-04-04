@@ -5,6 +5,7 @@ This guide provides comprehensive instructions for deploying TabloCrawler to Ras
 ## Deployment Architecture
 
 This deployment uses a **Docker-only approach** with the following components:
+
 - **Docker Compose**: Container orchestration and configuration
 - **Docker Containers**: Application runtime environment
 - **Ansible**: Automated deployment and configuration management
@@ -14,7 +15,8 @@ No systemd services are created - containers are managed directly by Docker with
 ## Prerequisites
 
 ### System Requirements
-- **Control Machine**: 
+
+- **Control Machine**:
   - Linux or macOS (native support)
   - Windows (requires WSL - Windows Subsystem for Linux)
 - **Target Devices**: Raspberry Pi 3B+ or newer with ARM64 support
@@ -26,6 +28,7 @@ No systemd services are created - containers are managed directly by Docker with
 **Important**: Ansible does not run natively on Windows. You must use WSL (Windows Subsystem for Linux).
 
 #### Install WSL:
+
 ```powershell
 # Run in PowerShell as Administrator
 wsl --install
@@ -33,6 +36,7 @@ wsl --install
 ```
 
 #### Setup Ubuntu in WSL:
+
 ```bash
 # After restart, open WSL and update packages
 sudo apt update && sudo apt upgrade -y
@@ -41,6 +45,7 @@ sudo apt update && sudo apt upgrade -y
 All subsequent commands in this guide should be run inside your WSL environment, not in Windows Command Prompt or PowerShell.
 
 ### Required Software on Control Machine
+
 - Python 3.8 or newer
 - Ansible 2.12 or newer
 - SSH client with key-based authentication configured
@@ -52,17 +57,20 @@ All subsequent commands in this guide should be run inside your WSL environment,
 ### 1. Install Ansible
 
 #### On Ubuntu/Debian (including WSL):
+
 ```bash
 sudo apt update
 sudo apt install ansible
 ```
 
 #### On macOS:
+
 ```bash
 brew install ansible
 ```
 
 #### On RHEL/CentOS/Fedora:
+
 ```bash
 sudo dnf install ansible
 # or for older versions:
@@ -71,12 +79,15 @@ sudo yum install ansible
 ```
 
 #### Using pip (all platforms, including WSL):
+
 ```bash
 pip3 install ansible
 ```
 
 #### Windows Users (WSL):
+
 The recommended approach for Windows users is to use the Ubuntu/Debian method above inside your WSL environment:
+
 ```bash
 # Inside WSL terminal
 sudo apt update
@@ -104,12 +115,15 @@ ssh-copy-id pi@raspberrypi.local
 ```
 
 Test SSH connectivity:
+
 ```bash
 ssh pi@raspberrypi.local "echo 'Connection successful'"
 ```
 
 #### Windows/WSL Users:
+
 SSH keys generated in WSL are separate from Windows SSH keys. Make sure to:
+
 - Generate and use SSH keys inside WSL
 - All SSH operations must be performed from WSL terminal
 - Your `~/.ssh/` directory in WSL is different from Windows
@@ -121,6 +135,7 @@ For a simple single Raspberry Pi development setup, the inventory is already con
 **Windows Users**: Execute all commands below in your WSL terminal, not in Windows Command Prompt or PowerShell.
 
 ### 1. Setup SSH Access
+
 ```bash
 # Copy your SSH key to the Pi
 ssh-copy-id pi@raspberrypi.local
@@ -130,6 +145,7 @@ ssh pi@raspberrypi.local "echo 'Connection successful'"
 ```
 
 ### 2. Configure Secrets
+
 ```bash
 cd deploy
 
@@ -141,13 +157,15 @@ ansible-vault encrypt vault.yml
 ```
 
 Required secrets in `vault.yml`:
+
 ```yaml
-vault_tablo_auth_token: "your_actual_tablo_token_here"  # Required
-vault_telegram_bot_token: ""                           # Optional (leave empty to disable)
-vault_telegram_chat_id: ""                             # Optional (leave empty to disable)
+vault_tablo_auth_token: "your_actual_tablo_token_here" # Required
+vault_telegram_bot_token: "" # Optional (leave empty to disable)
+vault_telegram_chat_id: "" # Optional (leave empty to disable)
 ```
 
 ### 3. Build Docker Image (First Time)
+
 ```bash
 # Build the Docker image locally on your Pi or push to a registry
 # Option 1: Build directly on Pi (recommended for development)
@@ -159,11 +177,13 @@ ssh pi@raspberrypi.local "cd /tmp && git clone <your-repo-url> && cd tablocrawle
 ```
 
 ### 4. Deploy
+
 ```bash
 ansible-playbook -i inventory.yml playbook.yml --ask-vault-pass
 ```
 
 ### 4. Verify
+
 ```bash
 ansible-playbook -i inventory.yml validate.yml
 ```
@@ -198,7 +218,9 @@ For multiple devices or different environments, you can expand this configuratio
 The deployment expects a Docker image named `tablocrawler`. You have several options:
 
 #### Option A: Local Image (Recommended for Development)
+
 Build the image directly on your Pi:
+
 ```bash
 ssh pi@raspberrypi.local
 git clone <your-repo-url>
@@ -207,14 +229,17 @@ docker build -t tablocrawler .
 ```
 
 #### Option B: Registry Image
+
 If you want to use a registry (GitHub Container Registry, Docker Hub, etc.), update `deploy/group_vars/raspberry_pis.yml`:
+
 ```yaml
-github_repo: "ghcr.io/your-username/tablocrawler"  # Full registry path
+github_repo: "ghcr.io/your-username/tablocrawler" # Full registry path
 docker_image: "{{ github_repo }}"
 image_tag: "latest"
 ```
 
 #### Option C: Custom Image Name
+
 ```yaml
 docker_image: "my-custom-tablocrawler-image"
 image_tag: "v1.0.0"
@@ -233,7 +258,9 @@ For your single Pi setup, all configuration is in the inventory.yml file. If you
 You have several options to configure the `monitored-users.txt` file:
 
 #### Option A: Copy from Local File (Recommended)
+
 Place your `monitored-users.txt` file in the deploy directory and run:
+
 ```bash
 ansible-playbook -i inventory.yml playbook.yml
 ```
@@ -241,17 +268,21 @@ ansible-playbook -i inventory.yml playbook.yml
 The playbook will automatically copy `../monitored-users.txt` if it exists.
 
 #### Option B: Specify Custom File Path
+
 ```bash
 ansible-playbook -i inventory.yml playbook.yml -e "monitored_users_file=/path/to/your/monitored-users.txt"
 ```
 
 #### Option C: Use Content Variable
+
 ```bash
 ansible-playbook -i inventory.yml playbook.yml -e "monitored_users_content='12345\n67890\n98765'"
 ```
 
 #### Option D: Use Template with User List
+
 Add to your inventory or group vars:
+
 ```yaml
 monitored_users_list:
   - "12345"
@@ -260,6 +291,7 @@ monitored_users_list:
 ```
 
 Then run:
+
 ```bash
 ansible-playbook -i inventory.yml playbook.yml -e "monitored_users_template=monitored-users.txt.j2"
 ```
@@ -269,7 +301,9 @@ ansible-playbook -i inventory.yml playbook.yml -e "monitored_users_template=moni
 TabloCrawler now supports restaurant monitoring in addition to user monitoring. You can configure the `monitored-restaurants.txt` file using the same methods as monitored users:
 
 #### Option A: Copy from Local File (Recommended)
+
 Place your `monitored-restaurants.txt` file in the deploy directory and run:
+
 ```bash
 ansible-playbook -i inventory.yml playbook.yml
 ```
@@ -277,17 +311,21 @@ ansible-playbook -i inventory.yml playbook.yml
 The playbook will automatically copy `../monitored-restaurants.txt` if it exists.
 
 #### Option B: Specify Custom File Path
+
 ```bash
 ansible-playbook -i inventory.yml playbook.yml -e "monitored_restaurants_file=/path/to/your/monitored-restaurants.txt"
 ```
 
 #### Option C: Use Content Variable
+
 ```bash
 ansible-playbook -i inventory.yml playbook.yml -e "monitored_restaurants_content='12345\n67890\n98765'"
 ```
 
 #### Option D: Use Template with Restaurant List
+
 Add to your inventory or group vars:
+
 ```yaml
 monitored_restaurants:
   - id: "12345"
@@ -299,12 +337,15 @@ monitored_restaurants:
 ```
 
 Then run:
+
 ```bash
 ansible-playbook -i inventory.yml playbook.yml -e "monitored_restaurants_template=monitored-restaurants.txt.j2"
 ```
 
 #### Dual Monitoring Mode
+
 You can monitor both users and restaurants simultaneously. The system will:
+
 - Send user-specific notifications when monitored users join/leave tables
 - Send restaurant-specific notifications for all activity in monitored restaurants
 - Cross-reference notifications (indicate when a monitored user joins a table in a monitored restaurant)
@@ -319,6 +360,7 @@ ansible-vault create deploy/vault.yml
 ```
 
 Add your secrets in the vault file:
+
 ```yaml
 vault_tablo_auth_token: "your_tablo_auth_token_here"
 vault_telegram_bot_token: "your_telegram_bot_token_here"
@@ -326,12 +368,14 @@ vault_telegram_chat_id: "your_telegram_chat_id_here"
 ```
 
 Create a vault password file (optional):
+
 ```bash
 echo "your_vault_password" > ~/.ansible_vault_pass
 chmod 600 ~/.ansible_vault_pass
 ```
 
 Configure Ansible to use the password file in `deploy/ansible.cfg`:
+
 ```ini
 [defaults]
 vault_password_file = ~/.ansible_vault_pass
@@ -342,6 +386,7 @@ vault_password_file = ~/.ansible_vault_pass
 ### Basic Deployment
 
 Deploy to your development Pi:
+
 ```bash
 cd deploy
 ansible-playbook -i inventory.yml playbook.yml
@@ -350,6 +395,7 @@ ansible-playbook -i inventory.yml playbook.yml
 ### Deploy to Specific Environment
 
 Deploy to development environment (your current setup):
+
 ```bash
 ansible-playbook -i inventory.yml playbook.yml --limit development
 ```
@@ -357,6 +403,7 @@ ansible-playbook -i inventory.yml playbook.yml --limit development
 ### Deploy to Specific Host
 
 Deploy to your Pi specifically:
+
 ```bash
 ansible-playbook -i inventory.yml playbook.yml --limit pi-dev
 ```
@@ -364,6 +411,7 @@ ansible-playbook -i inventory.yml playbook.yml --limit pi-dev
 ### Deployment with Custom Image Tag
 
 Deploy a specific version:
+
 ```bash
 ansible-playbook -i inventory.yml playbook.yml -e "image_tag=v1.2.3"
 ```
@@ -371,6 +419,7 @@ ansible-playbook -i inventory.yml playbook.yml -e "image_tag=v1.2.3"
 ### Dry Run (Check Mode)
 
 Test deployment without making changes:
+
 ```bash
 ansible-playbook -i inventory.yml playbook.yml --check
 ```
@@ -378,6 +427,7 @@ ansible-playbook -i inventory.yml playbook.yml --check
 ### Verbose Output
 
 Run with detailed output for debugging:
+
 ```bash
 ansible-playbook -i inventory.yml playbook.yml -vvv
 ```
@@ -385,6 +435,7 @@ ansible-playbook -i inventory.yml playbook.yml -vvv
 ## Update and Maintenance Commands
 
 ### Pull Latest Docker Images Only
+
 ```bash
 # Pull latest images without updating containers
 ansible-playbook -i inventory.yml pull.yml
@@ -397,6 +448,7 @@ ansible-playbook -i inventory.yml pull.yml -e "image_tag=v1.2.3"
 ```
 
 ### Update Configuration Only
+
 ```bash
 # Update configuration files and restart containers
 ansible-playbook -i inventory.yml config-only.yml
@@ -415,6 +467,7 @@ ansible-playbook -i inventory.yml config-only.yml -e "monitored_users_content='1
 ```
 
 ### Complete Update (Image + Configuration)
+
 ```bash
 # Pull new image and update configuration
 ansible-playbook -i inventory.yml update.yml
@@ -433,6 +486,7 @@ ansible-playbook -i inventory.yml update.yml -e "pull=true"
 ```
 
 ### Targeted Updates
+
 ```bash
 # Update only docker-compose configuration
 ansible-playbook -i inventory.yml config-only.yml --tags docker-compose
@@ -447,26 +501,31 @@ ansible-playbook -i inventory.yml config-only.yml --tags environment
 ## Ansible Vault Management
 
 ### Edit Encrypted Files
+
 ```bash
 ansible-vault edit deploy/vault.yml
 ```
 
 ### View Encrypted Files
+
 ```bash
 ansible-vault view deploy/vault.yml
 ```
 
 ### Change Vault Password
+
 ```bash
 ansible-vault rekey deploy/vault.yml
 ```
 
 ### Encrypt Existing File
+
 ```bash
 ansible-vault encrypt deploy/secrets.yml
 ```
 
 ### Decrypt File
+
 ```bash
 ansible-vault decrypt deploy/vault.yml
 ```
@@ -474,26 +533,31 @@ ansible-vault decrypt deploy/vault.yml
 ## Validation and Testing
 
 ### Test Connectivity
+
 ```bash
 ansible -i inventory.yml development -m ping
 ```
 
 ### Check Docker Installation
+
 ```bash
 ansible -i inventory.yml development -m command -a "docker --version"
 ```
 
 ### Verify Container Status
+
 ```bash
 ansible -i inventory.yml development -m command -a "docker ps"
 ```
 
 ### Check Container Status
+
 ```bash
 ansible -i inventory.yml development -m command -a "docker ps --filter name=tablocrawler"
 ```
 
 ### Run Validation Playbook
+
 ```bash
 ansible-playbook -i inventory.yml validate.yml
 ```
@@ -503,6 +567,7 @@ ansible-playbook -i inventory.yml validate.yml
 ### Rollback to Previous Version
 
 Deploy previous known-good version:
+
 ```bash
 ansible-playbook -i inventory.yml rollback.yml -e "rollback_version=v1.1.0"
 ```
@@ -510,6 +575,7 @@ ansible-playbook -i inventory.yml rollback.yml -e "rollback_version=v1.1.0"
 ### Emergency Stop
 
 Stop all containers immediately:
+
 ```bash
 ansible -i inventory.yml raspberry_pis -m docker_container -a "name=tablocrawler-monitor state=stopped"
 ```
@@ -517,6 +583,7 @@ ansible -i inventory.yml raspberry_pis -m docker_container -a "name=tablocrawler
 ### Restart Containers
 
 Restart Docker containers:
+
 ```bash
 ansible -i inventory.yml development -m docker_container -a "name=tablocrawler-monitor state=started restart=yes"
 ```
@@ -530,6 +597,7 @@ ansible -i inventory.yml development -m docker_container -a "name=tablocrawler-m
 **Problem**: `UNREACHABLE! => {"changed": false, "msg": "Failed to connect to the host via ssh"}`
 
 **Solutions**:
+
 - Verify SSH key is added to the Pi: `ssh-copy-id pi@192.168.1.100`
 - Check SSH service is running on Pi: `sudo systemctl status ssh`
 - Verify correct IP address in inventory
@@ -540,6 +608,7 @@ ansible -i inventory.yml development -m docker_container -a "name=tablocrawler-m
 **Problem**: `ModuleNotFoundError: No module named 'docker'`
 
 **Solutions**:
+
 - The Docker role should install this automatically
 - Manual installation on Pi: `sudo pip3 install docker>=5.0.0`
 - Verify Python path: Check `ansible_python_interpreter` in inventory
@@ -550,6 +619,7 @@ ansible -i inventory.yml development -m docker_container -a "name=tablocrawler-m
 **Problem**: `FAILED! => {"changed": false, "msg": "Permission denied"}`
 
 **Solutions**:
+
 - Add user to docker group: `sudo usermod -aG docker pi`
 - Use become (sudo) in playbook: `become: yes`
 - Check file permissions on SSH keys: `chmod 600 ~/.ssh/id_rsa`
@@ -559,6 +629,7 @@ ansible -i inventory.yml development -m docker_container -a "name=tablocrawler-m
 **Problem**: Docker installation fails or times out
 
 **Solutions**:
+
 - Update package cache: `sudo apt update`
 - Check internet connectivity on Pi
 - Use alternative Docker installation method
@@ -569,6 +640,7 @@ ansible -i inventory.yml development -m docker_container -a "name=tablocrawler-m
 **Problem**: `Error response from daemon: pull access denied`
 
 **Solutions**:
+
 - Verify image name and tag are correct
 - Check GitHub Container Registry permissions
 - Ensure GitHub Personal Access Token is configured in vault.yml
@@ -577,6 +649,7 @@ ansible -i inventory.yml development -m docker_container -a "name=tablocrawler-m
 - Check if repository is private and requires authentication
 
 **GitHub Container Registry Authentication Setup**:
+
 1. Create Personal Access Token at https://github.com/settings/tokens
 2. Select `read:packages` scope for private repositories
 3. Add credentials to vault.yml:
@@ -592,6 +665,7 @@ ansible -i inventory.yml development -m docker_container -a "name=tablocrawler-m
 **Problem**: `ERROR! Attempting to decrypt but no vault secrets found`
 
 **Solutions**:
+
 - Provide vault password: `ansible-playbook --ask-vault-pass`
 - Check vault password file path in ansible.cfg
 - Verify vault file is properly encrypted: `ansible-vault view vault.yml`
@@ -601,6 +675,7 @@ ansible -i inventory.yml development -m docker_container -a "name=tablocrawler-m
 **Problem**: Docker container fails to start
 
 **Solutions**:
+
 - Check container logs: `docker logs tablocrawler-monitor`
 - Verify Docker container runs manually: `docker run --rm tablocrawler`
 - Check environment variables and configuration
@@ -609,21 +684,25 @@ ansible -i inventory.yml development -m docker_container -a "name=tablocrawler-m
 ### Debugging Commands
 
 #### Check Ansible Configuration
+
 ```bash
 ansible-config dump --only-changed
 ```
 
 #### Test Inventory Parsing
+
 ```bash
 ansible-inventory -i inventory.yml --list
 ```
 
 #### Debug Specific Task
+
 ```bash
 ansible-playbook -i inventory.yml playbook.yml --start-at-task "Install Docker"
 ```
 
 #### Check Facts
+
 ```bash
 ansible -i inventory.yml raspberry_pis -m setup
 ```
@@ -650,6 +729,7 @@ ansible -i inventory.yml raspberry_pis -m command -a "docker ps --filter name=ta
 ### Log Collection
 
 Collect logs from all devices:
+
 ```bash
 ansible -i inventory.yml raspberry_pis -m fetch -a "src=/var/log/tablocrawler.log dest=./logs/"
 ```
@@ -657,6 +737,7 @@ ansible -i inventory.yml raspberry_pis -m fetch -a "src=/var/log/tablocrawler.lo
 ### Update Deployments
 
 Regular update procedure:
+
 1. Build new Docker image via GitHub Actions
 2. Test deployment in staging environment
 3. Deploy to production with specific version tag
@@ -666,24 +747,28 @@ Regular update procedure:
 ## Security Best Practices
 
 ### SSH Security
+
 - Use key-based authentication only
 - Disable password authentication: `PasswordAuthentication no` in `/etc/ssh/sshd_config`
 - Use non-standard SSH port if needed
 - Regularly rotate SSH keys
 
 ### Ansible Vault Security
+
 - Use strong vault passwords
 - Store vault password securely (not in version control)
 - Regularly rotate vault passwords
 - Limit access to vault files
 
 ### Container Security
+
 - Use non-root user in containers
 - Keep base images updated
 - Scan images for vulnerabilities
 - Use minimal base images
 
 ### Network Security
+
 - Use VPN for remote access
 - Configure firewall rules
 - Monitor network traffic
@@ -733,6 +818,7 @@ callback_whitelist = timer, profile_tasks
 ### View Container Logs
 
 #### Quick Log Check (Last 50 lines)
+
 ```bash
 # View logs from all Raspberry Pi devices
 ansible-playbook -i inventory.yml logs.yml
@@ -745,12 +831,14 @@ ansible-playbook -i inventory.yml logs.yml --limit pi-dev
 ```
 
 #### Follow Logs in Real-Time
+
 ```bash
 # Follow logs (use Ctrl+C to stop)
 ansible-playbook -i inventory.yml logs.yml -e "follow=true"
 ```
 
 #### Manual Log Commands
+
 ```bash
 # SSH to Pi and check logs manually
 ssh pi@raspberrypi.local
@@ -766,6 +854,7 @@ docker logs --tail 100 -t tablocrawler-monitor
 ### Comprehensive Troubleshooting
 
 #### Full System Diagnostics
+
 ```bash
 # Run complete troubleshooting playbook
 ansible-playbook -i inventory.yml troubleshoot.yml
@@ -775,6 +864,7 @@ ansible-playbook -i inventory.yml troubleshoot.yml --limit pi-dev
 ```
 
 This will provide:
+
 - System information (OS, memory, disk space)
 - Docker service status
 - Container status and configuration
@@ -784,6 +874,7 @@ This will provide:
 - Troubleshooting recommendations
 
 #### Quick Status Checks
+
 ```bash
 # Check if containers are running
 ansible -i inventory.yml raspberry_pis -m command -a "docker ps --filter name=tablocrawler"
@@ -798,6 +889,7 @@ ansible -i inventory.yml raspberry_pis -m command -a "free -h && df -h"
 ### Log Analysis Tips
 
 #### Common Log Patterns to Look For
+
 - **Startup Issues**: Look for errors during container initialization
 - **API Connectivity**: Check for HTTP errors or timeout messages
 - **Authentication**: Verify Tablo API token is working
@@ -805,6 +897,7 @@ ansible -i inventory.yml raspberry_pis -m command -a "free -h && df -h"
 - **Network Problems**: Look for DNS resolution or connection failures
 
 #### Useful Log Commands
+
 ```bash
 # Search for errors in logs
 docker logs tablocrawler-monitor 2>&1 | grep -i error
@@ -822,11 +915,13 @@ docker inspect tablocrawler-monitor | grep -i restartcount
 ## Support and Resources
 
 ### Documentation Links
+
 - [Ansible Documentation](https://docs.ansible.com/)
 - [Docker Ansible Collection](https://docs.ansible.com/ansible/latest/collections/community/docker/)
 - [Ansible Vault Guide](https://docs.ansible.com/ansible/latest/user_guide/vault.html)
 
 ### Community Resources
+
 - [Ansible Community](https://www.ansible.com/community)
 - [Docker Community](https://www.docker.com/community)
 - [Raspberry Pi Forums](https://www.raspberrypi.org/forums/)

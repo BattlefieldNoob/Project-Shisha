@@ -5,6 +5,7 @@ Welcome to the TabloCrawler operations runbook! This interactive guide will get 
 ## Prerequisites
 
 Ensure you have the following installed:
+
 - Bun runtime
 - Git
 - SSH access to target Raspberry Pi (for deployment)
@@ -115,13 +116,13 @@ ansible-playbook -i inventory.yml validate.yml --vault-password-file .vault_pass
 ## 📚 Next Steps
 
 - **Development**: See [runbook-development.md](./runbook-development.md) for detailed development workflows
-- **Deployment**: See [runbook-deployment.md](./runbook-deployment.md) for comprehensive deployment procedures  
+- **Deployment**: See [runbook-deployment.md](./runbook-deployment.md) for comprehensive deployment procedures
 - **Monitoring**: See [runbook-monitoring.md](./runbook-monitoring.md) for monitoring and maintenance
 - **Emergency**: See [runbook-emergency.md](./runbook-emergency.md) for emergency procedures
 
 ## 🔗 Quick Links
 
 - [Project README](./README.md)
-- [Setup Guide](./SETUP.md) 
+- [Setup Guide](./SETUP.md)
 - [Deployment Documentation](./deploy/README.md)
 - [User Monitoring Guide](./USER_MONITORING.md)

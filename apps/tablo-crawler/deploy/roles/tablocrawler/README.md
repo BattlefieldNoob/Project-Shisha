@@ -59,6 +59,7 @@ This Ansible role manages the deployment of TabloCrawler containers on Raspberry
 ## Container Configuration
 
 The role configures the container with:
+
 - Restart policy: `unless-stopped`
 - Volume mounts for data and config persistence
 - Environment variables for API tokens and monitoring settings

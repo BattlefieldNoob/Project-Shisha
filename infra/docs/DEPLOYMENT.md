@@ -4,11 +4,11 @@
 
 ## Prerequisites
 
-| Tool | Version | Purpose |
-|------|---------|---------|
-| Docker | Latest | Container runtime |
-| Ansible | 2.14+ | Deployment automation |
-| Bun | ≥1.0 | Build tool |
+| Tool    | Version | Purpose               |
+| ------- | ------- | --------------------- |
+| Docker  | Latest  | Container runtime     |
+| Ansible | 2.14+   | Deployment automation |
+| Bun     | ≥1.0    | Build tool            |
 
 ---
 
@@ -19,6 +19,7 @@
 Recommended for **production** — containers auto-update when new images are pushed.
 
 **Flow:**
+
 1. Push code to `main`
 2. GitHub Actions builds and pushes image to GHCR
 3. Watchtower detects new tag and updates container
@@ -115,6 +116,7 @@ cd apps/new-app
 ### Step 2: Create Required Files
 
 Copy from existing app template:
+
 - `package.json`
 - `Dockerfile`
 - `Dockerfile.optimized`
@@ -126,6 +128,7 @@ Copy from existing app template:
 ### Step 3: Update Root package.json
 
 Add scripts:
+
 ```json
 {
   "scripts": {
@@ -180,22 +183,26 @@ docker run -d --name fuel-advisor-bot \
 ## Docker Compose Quick Reference
 
 ### Start services
+
 ```bash
 cd apps/fuel-advisor-bot
 docker compose up -d
 ```
 
 ### Stop services
+
 ```bash
 docker compose down
 ```
 
 ### View logs
+
 ```bash
 docker compose logs -f
 ```
 
 ### Rebuild
+
 ```bash
 docker compose build
 docker compose up -d

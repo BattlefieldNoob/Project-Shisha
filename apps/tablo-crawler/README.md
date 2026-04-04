@@ -18,5 +18,6 @@ bun run test
 ## Deployment
 
 This app uses the following deployment strategy:
+
 - Dockerfile: `Dockerfile` (safe strategy)
 - Deploy vars: `deploy.vars.yml`

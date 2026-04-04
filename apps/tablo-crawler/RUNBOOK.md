@@ -496,10 +496,10 @@ ssh pi@YOUR_PI_IP "docker logs tabloCrawler 2>&1 | grep -i 'YOUR_PATTERN'"
 ssh pi@YOUR_PI_IP "
   echo '=== Recent Error Patterns ==='
   docker logs --since 1h tabloCrawler 2>&1 | grep -i error | tail -10
-  
+
   echo '=== API Call Statistics ==='
   docker logs --since 1h tabloCrawler 2>&1 | grep -c 'API call' || echo 'No API calls found'
-  
+
   echo '=== Table Scan Results ==='
   docker logs --since 1h tabloCrawler 2>&1 | grep -i 'balanced table' | tail -5
 "
@@ -512,13 +512,13 @@ ssh pi@YOUR_PI_IP "
 LOG_DATE=$(date +%Y%m%d_%H%M%S)
 ssh pi@YOUR_PI_IP "
   mkdir -p /tmp/logs/${LOG_DATE}
-  
+
   # Application logs
   docker logs tabloCrawler > /tmp/logs/${LOG_DATE}/application.log 2>&1
-  
+
   # System logs
   journalctl --since '1 day ago' > /tmp/logs/${LOG_DATE}/system.log
-  
+
   # Create archive
   tar -czf /tmp/tabloCrawler_logs_${LOG_DATE}.tar.gz /tmp/logs/${LOG_DATE}
   echo 'Logs archived to: /tmp/tabloCrawler_logs_${LOG_DATE}.tar.gz'
@@ -534,10 +534,10 @@ ssh pi@YOUR_PI_IP "
 ssh pi@YOUR_PI_IP "
   echo '=== CPU Usage ==='
   top -bn1 | grep 'Cpu(s)' | awk '{print \$2}' | cut -d'%' -f1
-  
+
   echo '=== Memory Details ==='
   cat /proc/meminfo | grep -E 'MemTotal|MemFree|MemAvailable|Buffers|Cached'
-  
+
   echo '=== Network Usage ==='
   cat /proc/net/dev | grep -E 'eth0|wlan0'
 "
@@ -550,7 +550,7 @@ ssh pi@YOUR_PI_IP "
 ssh pi@YOUR_PI_IP "
   echo '=== Container Resource Usage ==='
   docker stats --no-stream tabloCrawler
-  
+
   echo '=== Process Tree ==='
   docker exec tabloCrawler ps auxf
 "
@@ -565,17 +565,17 @@ ssh pi@YOUR_PI_IP "
 ssh pi@YOUR_PI_IP "
   echo '=== System Updates ==='
   sudo apt update && sudo apt list --upgradable
-  
+
   echo '=== Docker Maintenance ==='
   docker system df
   docker system prune -f --volumes
-  
+
   echo '=== Log Cleanup ==='
   journalctl --vacuum-time=7d
-  
+
   echo '=== Restart Services ==='
   docker restart tabloCrawler
-  
+
   echo 'Routine maintenance completed'
 "
 ```
@@ -591,7 +591,7 @@ if [ "$confirm" = "yes" ]; then
     sudo apt update
     sudo apt upgrade -y
     sudo apt autoremove -y
-    
+
     # Restart container with latest security patches
     docker pull ghcr.io/your-org/tabloCrawler:latest
     docker restart tabloCrawler
@@ -645,14 +645,14 @@ echo "🚨 EMERGENCY HEALTH CHECK"
 ssh pi@YOUR_PI_IP "
   echo '=== Container Status ==='
   docker ps -a | grep tabloCrawler
-  
+
   echo '=== System Resources ==='
   free -h | head -2
   df -h / | tail -1
-  
+
   echo '=== Recent Errors ==='
   docker logs --since 10m tabloCrawler 2>&1 | grep -i error | tail -5
-  
+
   echo '=== System Load ==='
   uptime
 "
@@ -692,13 +692,13 @@ echo "🚨 API CONNECTIVITY ISSUE RESPONSE"
 ssh pi@YOUR_PI_IP "
   echo '=== Network Connectivity Test ==='
   ping -c 3 api.tabloapp.com
-  
+
   echo '=== DNS Resolution Test ==='
   nslookup api.tabloapp.com
-  
+
   echo '=== API Endpoint Test ==='
   curl -I https://api.tabloapp.com --max-time 10
-  
+
   echo '=== Application API Test ==='
   docker exec tabloCrawler bun run src/index.ts users --id-ristorante 12345 --min-partecipazioni 1 | head -3
 "
@@ -715,16 +715,16 @@ read -p "Enter previous image tag (or 'latest-stable'): " prev_tag
 ssh pi@YOUR_PI_IP "
   echo 'Stopping current container...'
   docker stop tabloCrawler
-  
+
   echo 'Backing up current container...'
   docker rename tabloCrawler tabloCrawler_backup_\$(date +%Y%m%d_%H%M%S)
-  
+
   echo 'Starting previous version...'
   docker run -d --name tabloCrawler \
     --env-file /opt/tabloCrawler/.env \
     --restart unless-stopped \
     ghcr.io/your-org/tabloCrawler:${prev_tag}
-  
+
   sleep 5
   docker ps | grep tabloCrawler
   echo 'Rollback completed'
@@ -758,19 +758,19 @@ echo "🔧 SERVICE RECOVERY PROCEDURE"
 ssh pi@YOUR_PI_IP "
   echo '=== Step 1: Stop all services ==='
   docker stop tabloCrawler 2>/dev/null || true
-  
+
   echo '=== Step 2: Clean up containers ==='
   docker rm tabloCrawler 2>/dev/null || true
-  
+
   echo '=== Step 3: Pull latest image ==='
   docker pull ghcr.io/your-org/tabloCrawler:latest
-  
+
   echo '=== Step 4: Start fresh container ==='
   docker run -d --name tabloCrawler \
     --env-file /opt/tabloCrawler/.env \
     --restart unless-stopped \
     ghcr.io/your-org/tabloCrawler:latest
-  
+
   echo '=== Step 5: Verify recovery ==='
   sleep 10
   docker ps | grep tabloCrawler
@@ -786,10 +786,10 @@ echo "🔧 NETWORK RECOVERY PROCEDURE"
 ssh pi@YOUR_PI_IP "
   echo '=== Step 1: Restart network services ==='
   sudo systemctl restart networking 2>/dev/null || echo 'Network restart requires sudo'
-  
+
   echo '=== Step 2: Restart Docker networking ==='
   sudo systemctl restart docker
-  
+
   echo '=== Step 3: Recreate container with fresh network ==='
   docker stop tabloCrawler
   docker rm tabloCrawler
@@ -797,7 +797,7 @@ ssh pi@YOUR_PI_IP "
     --env-file /opt/tabloCrawler/.env \
     --restart unless-stopped \
     ghcr.io/your-org/tabloCrawler:latest
-  
+
   echo '=== Step 4: Verify network connectivity ==='
   sleep 5
   docker exec tabloCrawler ping -c 3 api.tabloapp.com
@@ -811,9 +811,11 @@ ssh pi@YOUR_PI_IP "
 Copy `runbook.env.example` to `runbook.env` and configure the following variables:
 
 ### Required Variables
+
 - `TABLO_AUTH_TOKEN`: Your Tablo API authentication token
 
 ### Optional Variables
+
 - `TELEGRAM_BOT_TOKEN`: Telegram bot token for notifications
 - `TELEGRAM_CHAT_ID`: Telegram chat ID for receiving notifications
 - `DAYS_TO_SCAN`: Number of days to scan ahead (1-7, default: 3)
@@ -822,6 +824,7 @@ Copy `runbook.env.example` to `runbook.env` and configure the following variable
 - `INTERVAL_SECONDS`: Scan interval in seconds for watch mode (default: 300)
 
 ### Deployment Variables
+
 - `SSH_USER`: SSH username for Raspberry Pi (default: pi)
 - `SSH_HOST`: IP address or hostname of Raspberry Pi
 - `SSH_KEY_PATH`: Path to SSH private key (default: ~/.ssh/id_rsa)
@@ -834,6 +837,7 @@ Copy `runbook.env.example` to `runbook.env` and configure the following variable
 ### Common Issues
 
 #### Permission Issues
+
 ```bash
 # Fix file permissions
 chmod +x src/index.ts
@@ -841,6 +845,7 @@ chmod 600 runbook.env
 ```
 
 #### Dependency Issues
+
 ```bash
 # Clear Bun cache and reinstall
 bun pm cache rm
@@ -849,6 +854,7 @@ bun install
 ```
 
 #### Environment Issues
+
 ```bash
 # Reset environment configuration
 cp runbook.env.example runbook.env
@@ -874,4 +880,4 @@ echo "Environment reset - please reconfigure runbook.env"
 
 ---
 
-*This runbook is also available as interactive Runme notebooks for enhanced usability. See the individual `runbook-*.md` files for the interactive versions.*
+_This runbook is also available as interactive Runme notebooks for enhanced usability. See the individual `runbook-_.md` files for the interactive versions.\*
