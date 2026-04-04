@@ -1,0 +1,93 @@
+---
+# Handlers for app_deploy role
+# Includes rollback capability and restart handlers
+
+- name: restart container
+  community.docker.docker_container:
+    name: "{{ container_name }}"
+    state: started
+    restart: yes
+  listen: "restart container"
+
+- name: stop container
+  community.docker.docker_container:
+    name: "{{ container_name }}"
+    state: stopped
+  listen: "stop container"
+
+- name: remove container
+  community.docker.docker_container:
+    name: "{{ container_name }}"
+    state: absent
+  listen: "remove container"
+
+- name: rollback deployment
+  block:
+    - name: Display rollback initiation
+      debug:
+        msg: |
+          ========================================
+          INITIATING ROLLBACK
+          ========================================
+          Previous container: {{ previous_container_id }}
+          Timestamp: {{ deployment_timestamp }}
+          ========================================
+
+    - name: Get list of backups
+      ansible.builtin.find:
+        paths: "/opt/{{ app_name }}/backup"
+        file_type: directory
+      register: backup_list
+
+    - name: Restore from most recent backup
+      block:
+        - name: Restore compose file
+          ansible.builtin.copy:
+            src: "/opt/{{ app_name }}/backup/{{ backup_list.files[-1].path }}/compose.yml"
+            dest: "/opt/{{ app_name }}/compose.yml"
+            mode: '0644'
+            remote_src: yes
+          when: backup_list.files | length > 0
+
+        - name: Restore env file
+          ansible.builtin.copy:
+            src: "/opt/{{ app_name }}/backup/{{ backup_list.files[-1].path }}/{{ env_file_name }}"
+            dest: "/opt/{{ app_name }}/{{ env_file_name }}"
+            mode: '0600'
+            remote_src: yes
+          ignore_errors: yes
+          when: backup_list.files | length > 0
+
+        - name: Redeploy from backup
+          command: "docker compose -f /opt/{{ app_name }}/compose.yml up -d"
+          args:
+            chdir: "/opt/{{ app_name }}"
+          when: backup_list.files | length > 0
+
+      when: backup_list.files | length > 0
+
+    - name: Verify rollback success
+      community.docker.docker_container_info:
+        name: "{{ container_name }}"
+      register: rollback_verification
+
+    - name: Display rollback result
+      debug:
+        msg: |
+          ========================================
+          ROLLBACK COMPLETE
+          ========================================
+          Status: {{ 'SUCCESS' if rollback_verification.container.State.Status == 'running' else 'FAILED' }}
+          Container: {{ container_name }}
+          ========================================
+
+  listen: "rollback"
+
+- name: health check container
+  community.docker.docker_container_info:
+    name: "{{ container_name }}"
+  register: health_check
+  until: health_check.container.State.Status == "running"
+  retries: 5
+  delay: 10
+  listen: "health check"

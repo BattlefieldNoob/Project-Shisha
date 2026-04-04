@@ -1,0 +1,52 @@
+---
+# Default variables for app_deploy role
+
+# Application settings
+app_name: ""
+app_path: ""
+env_file_name: ".env"
+
+# Docker image settings
+image_repository: ""
+image_tag: "latest"
+container_name: ""
+
+# Port configuration
+app_port: 3000
+host_port: 3000
+
+# Docker Compose settings
+compose_project_name: ""
+restart_policy: "unless-stopped"
+
+# Watchtower settings
+watchtower_enabled: true
+
+# Dockerfile strategy: "safe" or "optimized"
+# safe: Uses Dockerfile (default, more verbose logging, debugging features)
+# optimized: Uses Dockerfile.optimized (smaller image, better performance)
+dockerfile_strategy: "safe"
+
+# Pre-deployment check settings
+pre_deploy_checks: true
+min_disk_space_gb: 1
+min_memory_mb: 256
+check_docker_version: true
+check_docker_compose_version: true
+
+# Rolling update settings
+rolling_update_enabled: false
+rolling_update_delay: 10
+rolling_update_max_failure_percentage: 10
+health_check_retries: 5
+health_check_delay: 10
+
+# Rollback settings
+rollback_enabled: true
+rollback_on_failure: true
+max_rollback_attempts: 3
+backup_before_deploy: true
+
+# Template error handling
+template_fail_on_missing: true
+template_validate: true

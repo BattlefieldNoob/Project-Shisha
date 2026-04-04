@@ -13,3 +13,21 @@ restart_policy: unless-stopped
 env_file_name: tablo-crawler.env
 compose_project_name: tablo-crawler
 dockerfile_strategy: safe
+
+# Pre-deployment checks
+pre_deploy_checks: true
+min_disk_space_gb: 1
+min_memory_mb: 256
+
+# Rolling update settings
+rolling_update_enabled: false
+rolling_update_delay: 10
+health_check_retries: 5
+health_check_delay: 10
+
+# Rollback settings
+rollback_enabled: true
+backup_before_deploy: true
+
+# Template settings
+template_validate: true

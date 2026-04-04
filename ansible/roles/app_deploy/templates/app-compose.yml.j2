@@ -9,8 +9,38 @@ services:
       - "{{ host_port }}:{{ app_port }}"
     labels:
       com.centurylinklabs.watchtower.enable: "{{ watchtower_enabled|lower }}"
+      com.app.strategy: "{{ dockerfile_strategy }}"
+      com.app.backup: "{{ backup_timestamp | default('none') }}"
+    {% if rolling_update_enabled %}
+    deploy:
+      update_config:
+        parallelism: 1
+        delay: {{ rolling_update_delay }}s
+        order: stop-first
+        failure_action: rollback
+      rollback_config:
+        parallelism: 1
+        delay: {{ rolling_update_delay }}s
+        failure_action: pause
+    {% endif %}
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:{{ app_port }}/health"]
       interval: 30s
       timeout: 5s
       retries: 3
+      start_period: 10s
+    {% if dockerfile_strategy == 'optimized' %}
+    # Optimized strategy uses smaller image, reduced logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "1"
+    {% else %}
+    # Safe strategy enables full logging for debugging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+    {% endif %}

@@ -1,27 +1,312 @@
 ---
-- name: Deploy application
-  hosts: all
-  become: yes
-  vars:
-    app_path: ""
-  tasks:
-    - name: Include app vars
-      include_vars:
-        file: "{{ app_path }}/deploy.vars.yml"
+# Enhanced Application Deployment Role
+# Supports safe and optimized Docker strategies with rolling updates and rollback capability
 
-    - name: Copy compose file
-      template:
+- name: Validate required variables
+  ansible.builtin.assert:
+    that:
+      - app_name is defined and app_name | length > 0
+      - app_path is defined and app_path | length > 0
+      - image_repository is defined and image_repository | length > 0
+      - container_name is defined and container_name | length > 0
+      - dockerfile_strategy is defined
+      - dockerfile_strategy in ['safe', 'optimized']
+    fail_msg: "Missing or invalid required variables. Check app_name, app_path, image_repository, container_name, and dockerfile_strategy."
+    success_msg: "All required variables are valid"
+
+- name: Include deployment variables
+  ansible.builtin.include_vars:
+    file: "{{ app_path }}/deploy.vars.yml"
+
+- name: Display deployment configuration
+  ansible.builtin.debug:
+    msg: |
+      ========================================
+      DEPLOYMENT CONFIGURATION
+      ========================================
+      App: {{ app_name }}
+      Strategy: {{ dockerfile_strategy }}
+      Image: {{ image_repository }}:{{ image_tag }}
+      Container: {{ container_name }}
+      Pre-deploy checks: {{ pre_deploy_checks }}
+      Rolling updates: {{ rolling_update_enabled }}
+      Rollback enabled: {{ rollback_enabled }}
+      ========================================
+
+- name: Pre-deployment checks
+  block:
+    - name: Check Docker service status
+      ansible.builtin.service_facts:
+      register: services_facts
+
+    - name: Verify Docker is running
+      ansible.builtin.assert:
+        that:
+          - services_facts.ansible_facts.services['docker.service'] is defined
+          - services_facts.ansible_facts.services['docker.service'].state == 'running'
+        fail_msg: "Docker service is not running"
+        success_msg: "Docker service is running"
+
+    - name: Check Docker version
+      command: docker --version
+      register: docker_version_check
+      changed_when: false
+
+    - name: Display Docker version
+      debug:
+        msg: "Docker version: {{ docker_version_check.stdout }}"
+
+    - name: Check disk space
+      shell: df -BG / | tail -1 | awk '{print $4}' | sed 's/G//'
+      register: disk_space_check
+      changed_when: false
+
+    - name: Verify sufficient disk space
+      ansible.builtin.assert:
+        that:
+          - disk_space_check.stdout | int >= min_disk_space_gb
+        fail_msg: "Insufficient disk space. Required: {{ min_disk_space_gb }}GB, Available: {{ disk_space_check.stdout }}GB"
+        success_msg: "Sufficient disk space available"
+
+    - name: Check available memory
+      shell: free -m | grep Mem | awk '{print $7}'
+      register: memory_check
+      changed_when: false
+
+    - name: Verify sufficient memory
+      ansible.builtin.assert:
+        that:
+          - memory_check.stdout | int >= min_memory_mb
+        fail_msg: "Insufficient memory. Required: {{ min_memory_mb }}MB, Available: {{ memory_check.stdout }}MB"
+        success_msg: "Sufficient memory available"
+
+  when: pre_deploy_checks | bool
+  tags:
+    - pre-deploy
+    - checks
+
+- name: Create application directories
+  ansible.builtin.file:
+    path: "/opt/{{ app_name }}"
+    state: directory
+    mode: '0755'
+  become: yes
+
+- name: Backup existing configuration
+  block:
+    - name: Check if compose file exists
+      ansible.builtin.stat:
+        path: "/opt/{{ app_name }}/compose.yml"
+      register: existing_compose
+
+    - name: Create backup directory with timestamp
+      ansible.builtin.file:
+        path: "/opt/{{ app_name }}/backup/{{ ansible_date_time.iso8601 }}"
+        state: directory
+        mode: '0755'
+      when: existing_compose.stat.exists
+
+    - name: Backup existing compose file
+      ansible.builtin.copy:
+        src: "/opt/{{ app_name }}/compose.yml"
+        dest: "/opt/{{ app_name }}/backup/{{ ansible_date_time.iso8601 }}/compose.yml"
+        mode: '0644'
+      remote_src: yes
+      when: existing_compose.stat.exists
+
+    - name: Backup existing env file
+      ansible.builtin.copy:
+        src: "/opt/{{ app_name }}/{{ env_file_name }}"
+        dest: "/opt/{{ app_name }}/backup/{{ ansible_date_time.iso8601 }}/{{ env_file_name }}"
+        mode: '0600'
+      remote_src: yes
+      ignore_errors: yes
+
+    - name: Store backup information
+      ansible.builtin.set_fact:
+        backup_timestamp: "{{ ansible_date_time.iso8601 }}"
+        backup_created: true
+
+  when: backup_before_deploy | bool
+  tags:
+    - backup
+
+- name: Determine Dockerfile strategy
+  ansible.builtin.set_fact:
+    selected_dockerfile: "{{ 'Dockerfile.optimized' if dockerfile_strategy == 'optimized' else 'Dockerfile' }}"
+    dockerfile_strategy_info: "{{ 'Using optimized Dockerfile for smaller image and better performance' if dockerfile_strategy == 'optimized' else 'Using standard Dockerfile with full debugging features' }}"
+
+- name: Display selected Dockerfile
+  debug:
+    msg: "Dockerfile Strategy: {{ dockerfile_strategy_info }}"
+
+- name: Get current container state (for rolling updates)
+  community.docker.docker_container_info:
+    name: "{{ container_name }}"
+  register: current_container_info
+  ignore_errors: yes
+  when: rolling_update_enabled | bool
+
+- name: Display current container state
+  debug:
+    msg: |
+      Current Container:
+      - Exists: {{ current_container_info.exists | default(false) }}
+      - Status: {{ current_container_info.container.State.Status | default('not found') }}
+      - Image: {{ current_container_info.container.Config.Image | default('N/A') }}
+  when: rolling_update_enabled | bool and current_container_info is defined
+
+- name: Template compose file with error handling
+  block:
+    - name: Render compose template
+      ansible.builtin.template:
         src: app-compose.yml.j2
         dest: "/opt/{{ app_name }}/compose.yml"
         mode: '0644'
+        validate: 'docker compose -f %s config'
+      register: compose_template_result
 
-    - name: Copy env file
-      template:
+    - name: Display compose template result
+      debug:
+        msg: "Compose file rendered successfully: {{ compose_template_result.changed | ternary('UPDATED', 'UNCHANGED') }}"
+
+  rescue:
+    - name: Handle template rendering failure
+      debug:
+        msg: |
+          ========================================
+          TEMPLATE RENDERING ERROR
+          ========================================
+          Failed to render compose template.
+          Attempting to render with relaxed validation...
+          
+    - name: Retry template with relaxed validation
+      ansible.builtin.template:
+        src: app-compose.yml.j2
+        dest: "/opt/{{ app_name }}/compose.yml"
+        mode: '0644'
+      register: compose_template_result_fallback
+      when: not template_validate | bool
+
+    - name: Fail on template error
+      fail:
+        msg: "Failed to render compose template after retry. Please check template syntax."
+      when: template_validate | bool
+
+- name: Template env file with error handling
+  block:
+    - name: Render env template
+      ansible.builtin.template:
         src: app-env.j2
         dest: "/opt/{{ app_name }}/{{ env_file_name }}"
-        mode: '0644'
+        mode: '0600'
+      register: env_template_result
 
-    - name: Deploy with docker compose
-      command: "docker compose -f /opt/{{ app_name }}/compose.yml up -d"
-      args:
-        chdir: "/opt/{{ app_name }}"
+    - name: Display env template result
+      debug:
+        msg: "Env file rendered: {{ env_template_result.changed | ternary('UPDATED', 'UNCHANGED') }}"
+
+  rescue:
+    - name: Handle env template failure
+      debug:
+        msg: "Warning: Failed to render env template. Using minimal fallback."
+      
+    - name: Create fallback env file
+      ansible.builtin.copy:
+        content: "# Environment variables for {{ app_name }}\n# Auto-generated fallback\n"
+        dest: "/opt/{{ app_name }}/{{ env_file_name }}"
+        mode: '0600'
+      when: not env_template_result is defined or env_template_result is failed
+
+- name: Pull Docker image
+  community.docker.docker_image:
+    name: "{{ image_repository }}"
+    tag: "{{ image_tag }}"
+    source: pull
+    force_source: "{{ dockerfile_strategy == 'optimized' }}"
+  register: image_pull_result
+  tags:
+    - image
+    - pull
+
+- name: Display image pull result
+  debug:
+    msg: |
+      Image Pull:
+      - Image: {{ image_repository }}:{{ image_tag }}
+      - Result: {{ 'PULLED' if image_pull_result.changed else 'UP-TO-DATE' }}
+      {% if image_pull_result.changed %}
+      - Image ID: {{ image_pull_result.image.Id }}
+      {% endif %}
+
+- name: Rolling update - wait before deploying
+  pause:
+    seconds: "{{ rolling_update_delay }}"
+  when: rolling_update_enabled | bool and current_container_info.exists | default(false)
+
+- name: Stop container for rolling update
+  community.docker.docker_container:
+    name: "{{ container_name }}"
+    state: stopped
+  register: container_stop_result
+  when: rolling_update_enabled | bool
+
+- name: Deploy with docker compose
+  command: "docker compose -f /opt/{{ app_name }}/compose.yml up -d"
+  args:
+    chdir: "/opt/{{ app_name }}"
+  register: compose_deploy_result
+  changed_when: "'Started' in compose_deploy_result.stderr or 'Created' in compose_deploy_result.stderr"
+
+- name: Display deployment result
+  debug:
+    msg: |
+      Deployment Result:
+      - Command: docker compose up -d
+      - Changed: {{ compose_deploy_result.changed }}
+      - Exit Code: {{ compose_deploy_result.rc }}
+
+- name: Health check after deployment
+  community.docker.docker_container_info:
+    name: "{{ container_name }}"
+  register: health_check_result
+  until: health_check_result.container.State.Status == "running"
+  retries: "{{ health_check_retries }}"
+  delay: "{{ health_check_delay }}"
+  when: health_check_retries > 0
+
+- name: Verify deployment success
+  ansible.builtin.assert:
+    that:
+      - health_check_result.container.State.Status == "running"
+    fail_msg: "Container failed to start properly"
+    success_msg: "Container is running successfully"
+  when: health_check_retries > 0
+
+- name: Display final deployment status
+  debug:
+    msg: |
+      ========================================
+      DEPLOYMENT COMPLETE
+      ========================================
+      App: {{ app_name }}
+      Container: {{ container_name }}
+      Image: {{ image_repository }}:{{ image_tag }}
+      Strategy: {{ dockerfile_strategy }}
+      Status: Running
+      Backup: {{ backup_created | default(false) }}
+      ========================================
+
+- name: Store deployment facts for rollback
+  ansible.builtin.set_fact:
+    deployment_successful: true
+    deployment_image: "{{ image_repository }}:{{ image_tag }}"
+    deployment_timestamp: "{{ ansible_date_time.iso8601 }}"
+    previous_container_id: "{{ current_container_info.container.Id | default('') }}"
+  when: health_check_result is defined and health_check_result.container.State.Status == "running"
+
+# Handler for rolling updates
+- name: Rolling update complete
+  debug:
+    msg: "Rolling update completed successfully"
+  when: rolling_update_enabled | bool

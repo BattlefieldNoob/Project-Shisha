@@ -1,0 +1,130 @@
+---
+# Rollback Application Playbook
+# Enables rollback to previous version when deployment fails
+
+- name: Rollback application to previous version
+  hosts: all
+  become: yes
+  gather_facts: yes
+  
+  vars:
+    rollback_version: ""
+    app_path: ""
+    
+  vars_files:
+    - "{{ app_path }}/deploy.vars.yml"
+  
+  pre_tasks:
+    - name: Display rollback information
+      debug:
+        msg: |
+          ========================================
+          ROLLBACK OPERATION
+          ========================================
+          App: {{ app_name }}
+          Container: {{ container_name }}
+          Rollback to: {{ rollback_version | default('previous') }}
+          ========================================
+
+    - name: Verify rollback is enabled
+      ansible.builtin.assert:
+        that:
+          - rollback_enabled | default(true)
+        fail_msg: "Rollback is disabled. Set rollback_enabled: true to enable."
+        success_msg: "Rollback is enabled"
+
+  tasks:
+    - name: Get list of available backups
+      ansible.builtin.find:
+        paths: "/opt/{{ app_name }}/backup"
+        file_type: directory
+        sort: name
+        reverse: true
+      register: available_backups
+
+    - name: Display available backups
+      debug:
+        msg: "Available backups: {{ available_backups.files | map(attribute='path') | list }}"
+      when: available_backups.files | length > 0
+
+    - name: Fail if no backups available
+      fail:
+        msg: "No backups available for rollback. Cannot proceed."
+      when: available_backups.files | length == 0
+
+    - name: Stop current container
+      community.docker.docker_container:
+        name: "{{ container_name }}"
+        state: stopped
+      ignore_errors: yes
+
+    - name: Remove current container
+      community.docker.docker_container:
+        name: "{{ container_name }}"
+        state: absent
+      ignore_errors: yes
+
+    - name: Restore compose file from backup
+      ansible.builtin.copy:
+        src: "{{ available_backups.files[0].path }}/compose.yml"
+        dest: "/opt/{{ app_name }}/compose.yml"
+        mode: '0644'
+        remote_src: yes
+
+    - name: Restore env file from backup
+      ansible.builtin.copy:
+        src: "{{ available_backups.files[0].path }}/{{ env_file_name }}"
+        dest: "/opt/{{ app_name }}/{{ env_file_name }}"
+        mode: '0600'
+        remote_src: yes
+      ignore_errors: yes
+
+    - name: Pull rollback image version
+      community.docker.docker_image:
+        name: "{{ image_repository }}"
+        tag: "{{ rollback_version | default('latest') }}"
+        source: pull
+      when: rollback_version | length > 0
+
+    - name: Redeploy from backup
+      command: "docker compose -f /opt/{{ app_name }}/compose.yml up -d"
+      args:
+        chdir: "/opt/{{ app_name }}"
+      register: rollback_deploy_result
+      changed_when: "'Started' in rollback_deploy_result.stderr or 'Created' in rollback_deploy_result.stderr"
+
+    - name: Wait for container to start
+      pause:
+        seconds: 10
+
+    - name: Verify rollback success
+      community.docker.docker_container_info:
+        name: "{{ container_name }}"
+      register: rollback_verification
+
+    - name: Display rollback status
+      debug:
+        msg: |
+          ========================================
+          ROLLBACK STATUS
+          ========================================
+          Container Status: {{ rollback_verification.container.State.Status | default('NOT FOUND') }}
+          Image: {{ rollback_verification.container.Config.Image | default('N/A') }}
+          Result: {{ 'SUCCESS' if rollback_verification.container.State.Status == 'running' else 'FAILED' }}
+          ========================================
+
+    - name: Assert rollback success
+      ansible.builtin.assert:
+        that:
+          - rollback_verification.exists
+          - rollback_verification.container.State.Status == "running"
+        fail_msg: "Rollback failed - container is not running"
+        success_msg: "Rollback completed successfully"
+
+  handlers:
+    - name: restart container
+      community.docker.docker_container:
+        name: "{{ container_name }}"
+        state: started
+        restart: yes
+      listen: "restart container"
