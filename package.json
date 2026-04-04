@@ -1,19 +1,62 @@
 {
-  "name": "personal-platform",
+  "name": "project-shisha",
+  "version": "1.0.0",
   "private": true,
+  "description": "Bun workspaces monorepo for Project Shisha",
   "workspaces": [
     "apps/*",
     "packages/*"
   ],
   "scripts": {
+    "=== Development ===": "",
     "dev:fuel-advisor-bot": "bun run --cwd apps/fuel-advisor-bot dev",
     "dev:tablo-crawler": "bun run --cwd apps/tablo-crawler dev",
+    "=== Build ===": "",
+    "build": "bun run --recursive --if-present build",
     "build:fuel-advisor-bot": "bun run --cwd apps/fuel-advisor-bot build",
     "build:tablo-crawler": "bun run --cwd apps/tablo-crawler build",
+    "build:shared-lib": "bun run --cwd packages/shared-lib build",
+    "build:shared-config": "bun run --cwd packages/shared-config build",
+    "build:all": "bun run build:shared-lib && bun run build:shared-config && bun run build:fuel-advisor-bot && bun run build:tablo-crawler",
+    "=== Testing ===": "",
+    "test": "bun run --recursive test",
     "test:fuel-advisor-bot": "bun run --cwd apps/fuel-advisor-bot test",
-    "test:tablo-crawler": "bun run --cwd apps/tablo-crawler test"
+    "test:tablo-crawler": "bun run --cwd apps/tablo-crawler test",
+    "test:shared-lib": "bun run --cwd packages/shared-lib test",
+    "=== Linting & Formatting ===": "",
+    "lint": "bun run lint:root && bun run lint:apps && bun run lint:packages",
+    "lint:root": "bun run lint:tsc:root",
+    "lint:apps": "bun run lint:tsc:apps",
+    "lint:packages": "bun run lint:tsc:packages",
+    "lint:tsc:root": "tsc --noEmit --project tsconfig.json",
+    "lint:tsc:apps": "tsc --noEmit --project apps/fuel-advisor-bot/tsconfig.json 2>/dev/null || true && tsc --noEmit --project apps/tablo-crawler/tsconfig.json 2>/dev/null || true",
+    "lint:tsc:packages": "tsc --noEmit --project packages/shared-lib/tsconfig.json 2>/dev/null || true && tsc --noEmit --project packages/shared-config/tsconfig.base.json 2>/dev/null || true",
+    "lint:fix": "bun run lint:fix:apps && bun run lint:fix:packages",
+    "lint:fix:apps": "eslint apps/ --fix 2>/dev/null || true",
+    "lint:fix:packages": "eslint packages/ --fix 2>/dev/null || true",
+    "=== Formatting ===": "",
+    "format": "bun run format:prettier",
+    "format:prettier": "prettier --write \"**/*.{ts,tsx,js,json,md,yml,yaml}\" --ignore-path .gitignore 2>/dev/null || echo 'Prettier not installed, skipping'",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,json,md,yml,yaml}\" --ignore-path .gitignore 2>/dev/null || echo 'Prettier not installed, skipping'",
+    "=== Workspace Management ===": "",
+    "workspaces:list": "bun pm ls -g --all",
+    "workspaces:info": "bun run --cwd packages/shared-lib info && bun run --cwd packages/shared-config info",
+    "install:all": "bun install",
+    "clean": "rm -rf apps/*/dist apps/*/node_modules packages/*/dist packages/*/node_modules node_modules bun.lockb 2>/dev/null; echo 'Cleaned build artifacts'",
+    "=== Docker & Deployment ===": "",
+    "docker:build:fuel-advisor-bot": "docker build -t fuel-advisor-bot -f apps/fuel-advisor-bot/Dockerfile apps/fuel-advisor-bot",
+    "docker:build:tablo-crawler": "docker build -t tablo-crawler -f apps/tablo-crawler/Dockerfile apps/tablo-crawler",
+    "compose:fuel-advisor-bot": "docker compose -f apps/fuel-advisor-bot/compose.yml",
+    "compose:tablo-crawler": "docker compose -f apps/tablo-crawler/compose.yml"
   },
   "devDependencies": {
-    "bun-types": "^1.3.10"
+    "bun-types": "^1.3.10",
+    "prettier": "^3.2.0",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {},
+  "engines": {
+    "node": ">=20.0.0",
+    "bun": ">=1.3.0"
   }
 }

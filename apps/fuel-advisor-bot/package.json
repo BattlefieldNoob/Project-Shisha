@@ -2,17 +2,20 @@
   "name": "fuel-advisor-bot",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "bun run src/index.ts",
     "build": "bun build src/index.ts --outdir dist --target node --format esm",
-    "test": "bun test"
+    "test": "bun test",
+    "lint": "eslint src/ --fix",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@project-shisha/shared-lib": "workspace:*",
     "csv-parse": "^6.1.0",
     "dotenv": "^17.3.1",
     "node-cron": "^4.2.1",
-    "node-telegram-bot-api": "^0.67.0",
-    "bun": "^1.0.0"
+    "node-telegram-bot-api": "^0.67.0"
   },
   "devDependencies": {
     "@types/dotenv": "^8.2.3",

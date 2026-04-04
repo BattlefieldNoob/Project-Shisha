@@ -73,7 +73,7 @@ Thumbs.db
 # Bun
 .bun/
 .bun-debug.log
-.bun-lock.json
+bun.lockb
 
 # Docker
 .docker/

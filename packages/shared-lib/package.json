@@ -1,5 +1,29 @@
 {
-  "name": "shared-lib",
+  "name": "@project-shisha/shared-lib",
   "version": "1.0.0",
-  "main": "index.js"
+  "description": "Shared utilities and helpers for Project Shisha applications",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "bun test"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  },
+  "peerDependencies": {}
 }
