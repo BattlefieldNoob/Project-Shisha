@@ -1,0 +1,611 @@
+{
+  "version": "6.0",
+  "nxVersion": "22.6.4",
+  "pathMappings": {},
+  "nxJsonPlugins": [],
+  "fileMap": {
+    "nonProjectFiles": [],
+    "projectFileMap": {
+      "shared-lib": [
+        {
+          "file": "packages/shared-lib/package.json",
+          "hash": "16159939003571622346",
+          "deps": [
+            "npm:typescript@5.9.3"
+          ]
+        },
+        {
+          "file": "packages/shared-lib/project.json",
+          "hash": "8768151890689804794"
+        },
+        {
+          "file": "packages/shared-lib/src/async.ts",
+          "hash": "7691004421752346694"
+        },
+        {
+          "file": "packages/shared-lib/src/date.ts",
+          "hash": "9286106876477391168"
+        },
+        {
+          "file": "packages/shared-lib/src/index.ts",
+          "hash": "7020221486461375749"
+        },
+        {
+          "file": "packages/shared-lib/src/validation.ts",
+          "hash": "12798331268236816310"
+        },
+        {
+          "file": "packages/shared-lib/tsconfig.json",
+          "hash": "12717243825218693566"
+        }
+      ],
+      "fuel-advisor-bot": [
+        {
+          "file": "apps/fuel-advisor-bot/.env.example",
+          "hash": "14612852943127594997"
+        },
+        {
+          "file": "apps/fuel-advisor-bot/Dockerfile",
+          "hash": "10395435772984992181"
+        },
+        {
+          "file": "apps/fuel-advisor-bot/Dockerfile.optimized",
+          "hash": "13179845160056192314"
+        },
+        {
+          "file": "apps/fuel-advisor-bot/compose.yml",
+          "hash": "1158970018530948936"
+        },
+        {
+          "file": "apps/fuel-advisor-bot/data/fuel.db",
+          "hash": "11257661955799864923"
+        },
+        {
+          "file": "apps/fuel-advisor-bot/deploy.vars.yml",
+          "hash": "17919325016713656217"
+        },
+        {
+          "file": "apps/fuel-advisor-bot/package.json",
+          "hash": "11972648855411016180",
+          "deps": [
+            "npm:@types/dotenv@8.2.3",
+            "npm:@types/node@25.5.0",
+            "npm:@types/node-cron@3.0.11",
+            "npm:@types/node-telegram-bot-api@0.64.14",
+            "npm:bun-types@1.3.11",
+            "npm:typescript@5.9.3",
+            "shared-lib",
+            "npm:csv-parse@6.2.1",
+            "npm:dotenv@17.3.1",
+            "npm:node-cron@4.2.1",
+            "npm:node-telegram-bot-api@0.67.0"
+          ]
+        },
+        {
+          "file": "apps/fuel-advisor-bot/project.json",
+          "hash": "3984651240355612641"
+        },
+        {
+          "file": "apps/fuel-advisor-bot/src/advisor/advisor.ts",
+          "hash": "6866147087255950850"
+        },
+        {
+          "file": "apps/fuel-advisor-bot/src/advisor/rules.ts",
+          "hash": "18139491634668039500"
+        },
+        {
+          "file": "apps/fuel-advisor-bot/src/advisor/types.ts",
+          "hash": "10732953353779972080"
+        },
+        {
+          "file": "apps/fuel-advisor-bot/src/bot/bot.ts",
+          "hash": "14246266167546937067"
+        },
+        {
+          "file": "apps/fuel-advisor-bot/src/bot/commands/help.ts",
+          "hash": "10817670080692728621"
+        },
+        {
+          "file": "apps/fuel-advisor-bot/src/bot/commands/search.ts",
+          "hash": "4680631673520315207"
+        },
+        {
+          "file": "apps/fuel-advisor-bot/src/bot/commands/settings.ts",
+          "hash": "17991096757709510854"
+        },
+        {
+          "file": "apps/fuel-advisor-bot/src/bot/commands/start.ts",
+          "hash": "1251455860121013039"
+        },
+        {
+          "file": "apps/fuel-advisor-bot/src/bot/commands/today.ts",
+          "hash": "15566474557606499578"
+        },
+        {
+          "file": "apps/fuel-advisor-bot/src/config/env.ts",
+          "hash": "12211619875650184904"
+        },
+        {
+          "file": "apps/fuel-advisor-bot/src/config/logging.ts",
+          "hash": "5406473213414883761"
+        },
+        {
+          "file": "apps/fuel-advisor-bot/src/db/index.ts",
+          "hash": "6273835509626131863"
+        },
+        {
+          "file": "apps/fuel-advisor-bot/src/db/migrations/001_init.sql",
+          "hash": "14869769788224972953"
+        },
+        {
+          "file": "apps/fuel-advisor-bot/src/db/migrations/002_favorite_stations.sql",
+          "hash": "4639200222303965522"
+        },
+        {
+          "file": "apps/fuel-advisor-bot/src/index.ts",
+          "hash": "15539984689784611233"
+        },
+        {
+          "file": "apps/fuel-advisor-bot/src/jobs/scheduler.ts",
+          "hash": "18174709722367436328"
+        },
+        {
+          "file": "apps/fuel-advisor-bot/src/scraper/index.ts",
+          "hash": "12416303167578209991"
+        },
+        {
+          "file": "apps/fuel-advisor-bot/src/scraper/mimitClient.ts",
+          "hash": "9538050186617318336"
+        },
+        {
+          "file": "apps/fuel-advisor-bot/src/scraper/parsers.ts",
+          "hash": "12633594168758151175"
+        },
+        {
+          "file": "apps/fuel-advisor-bot/src/utils/dates.ts",
+          "hash": "14597419074542368903"
+        },
+        {
+          "file": "apps/fuel-advisor-bot/src/utils/numbers.ts",
+          "hash": "16458148969353105600"
+        },
+        {
+          "file": "apps/fuel-advisor-bot/src/utils/telegram.ts",
+          "hash": "9557905913274280607"
+        },
+        {
+          "file": "apps/fuel-advisor-bot/tsconfig.json",
+          "hash": "1545770359498571025"
+        }
+      ],
+      "shared-config": [
+        {
+          "file": "packages/shared-config/eslint.config.js",
+          "hash": "11878097497056603527"
+        },
+        {
+          "file": "packages/shared-config/package.json",
+          "hash": "10053860841393504927",
+          "deps": [
+            "npm:eslint@9.39.4",
+            "npm:typescript@5.9.3",
+            "npm:@typescript-eslint/eslint-plugin@8.58.0",
+            "npm:@typescript-eslint/parser@8.58.0"
+          ]
+        },
+        {
+          "file": "packages/shared-config/project.json",
+          "hash": "13429061165163489435"
+        },
+        {
+          "file": "packages/shared-config/tsconfig.base.json",
+          "hash": "11003091297723832517"
+        }
+      ],
+      "tablo-crawler": [
+        {
+          "file": "apps/tablo-crawler/.env.example",
+          "hash": "17986801570400067298"
+        },
+        {
+          "file": "apps/tablo-crawler/Dockerfile",
+          "hash": "13954600392046483833"
+        },
+        {
+          "file": "apps/tablo-crawler/Dockerfile copy",
+          "hash": "7198726308595187468"
+        },
+        {
+          "file": "apps/tablo-crawler/Dockerfile.optimized",
+          "hash": "6719200829340466421"
+        },
+        {
+          "file": "apps/tablo-crawler/bun.lock",
+          "hash": "9740610935751201505"
+        },
+        {
+          "file": "apps/tablo-crawler/compose.yml",
+          "hash": "13197097331018880423"
+        },
+        {
+          "file": "apps/tablo-crawler/deploy.vars.yml",
+          "hash": "7509172279650099636"
+        },
+        {
+          "file": "apps/tablo-crawler/deploy/.vault_pass.example",
+          "hash": "14036124788854271888"
+        },
+        {
+          "file": "apps/tablo-crawler/deploy/ansible.cfg",
+          "hash": "13236666408889654643"
+        },
+        {
+          "file": "apps/tablo-crawler/deploy/config-only.yml",
+          "hash": "3007393089867058545"
+        },
+        {
+          "file": "apps/tablo-crawler/deploy/fix-permissions.yml",
+          "hash": "10644402302372031971"
+        },
+        {
+          "file": "apps/tablo-crawler/deploy/group_vars/development.yml",
+          "hash": "5898999719855973562"
+        },
+        {
+          "file": "apps/tablo-crawler/deploy/group_vars/raspberry_pis.yml",
+          "hash": "414482160821252598"
+        },
+        {
+          "file": "apps/tablo-crawler/deploy/inventory.yml",
+          "hash": "10475902846697944403"
+        },
+        {
+          "file": "apps/tablo-crawler/deploy/logs.yml",
+          "hash": "16041040581380503206"
+        },
+        {
+          "file": "apps/tablo-crawler/deploy/monitored-restaurants.txt.example",
+          "hash": "15047208281912271213"
+        },
+        {
+          "file": "apps/tablo-crawler/deploy/monitored-users.txt.example",
+          "hash": "6980020346337993968"
+        },
+        {
+          "file": "apps/tablo-crawler/deploy/playbook.yml",
+          "hash": "5306650629321909990"
+        },
+        {
+          "file": "apps/tablo-crawler/deploy/pull.yml",
+          "hash": "11685772255288445043"
+        },
+        {
+          "file": "apps/tablo-crawler/deploy/requirements.yml",
+          "hash": "6211115233041394122"
+        },
+        {
+          "file": "apps/tablo-crawler/deploy/roles/docker-auth/defaults/main.yml",
+          "hash": "14391501626205104107"
+        },
+        {
+          "file": "apps/tablo-crawler/deploy/roles/docker-auth/handlers/main.yml",
+          "hash": "17069523823604053905"
+        },
+        {
+          "file": "apps/tablo-crawler/deploy/roles/docker-auth/tasks/main.yml",
+          "hash": "963824720277478934"
+        },
+        {
+          "file": "apps/tablo-crawler/deploy/roles/docker-auth/templates/docker-config.json.j2",
+          "hash": "532307104455267201"
+        },
+        {
+          "file": "apps/tablo-crawler/deploy/roles/docker/defaults/main.yml",
+          "hash": "17150895353400412076"
+        },
+        {
+          "file": "apps/tablo-crawler/deploy/roles/docker/handlers/main.yml",
+          "hash": "14169008684722643764"
+        },
+        {
+          "file": "apps/tablo-crawler/deploy/roles/docker/meta/main.yml",
+          "hash": "17382509896764380206"
+        },
+        {
+          "file": "apps/tablo-crawler/deploy/roles/docker/tasks/main.yml",
+          "hash": "10462702565426139103"
+        },
+        {
+          "file": "apps/tablo-crawler/deploy/roles/tablocrawler/defaults/main.yml",
+          "hash": "7059600744675980002"
+        },
+        {
+          "file": "apps/tablo-crawler/deploy/roles/tablocrawler/handlers/main.yml",
+          "hash": "13929592133100054262"
+        },
+        {
+          "file": "apps/tablo-crawler/deploy/roles/tablocrawler/meta/main.yml",
+          "hash": "7317449342325060333"
+        },
+        {
+          "file": "apps/tablo-crawler/deploy/roles/tablocrawler/tasks/backup.yml",
+          "hash": "1710430385897208758"
+        },
+        {
+          "file": "apps/tablo-crawler/deploy/roles/tablocrawler/tasks/configure.yml",
+          "hash": "10513637429025684111"
+        },
+        {
+          "file": "apps/tablo-crawler/deploy/roles/tablocrawler/tasks/main.yml",
+          "hash": "6456694847294552737"
+        },
+        {
+          "file": "apps/tablo-crawler/deploy/roles/tablocrawler/tasks/validate.yml",
+          "hash": "8358304584684999521"
+        },
+        {
+          "file": "apps/tablo-crawler/deploy/roles/tablocrawler/templates/monitored-restaurants.txt.j2",
+          "hash": "7207413989124019786"
+        },
+        {
+          "file": "apps/tablo-crawler/deploy/roles/tablocrawler/templates/monitored-users.txt.j2",
+          "hash": "6281194646668125904"
+        },
+        {
+          "file": "apps/tablo-crawler/deploy/setup-watchtower.yml",
+          "hash": "8854091806677053442"
+        },
+        {
+          "file": "apps/tablo-crawler/deploy/templates/docker-compose.yml.j2",
+          "hash": "15573473600679303336"
+        },
+        {
+          "file": "apps/tablo-crawler/deploy/templates/logging.conf.j2",
+          "hash": "8500245502884867820"
+        },
+        {
+          "file": "apps/tablo-crawler/deploy/templates/tablocrawler.env.j2",
+          "hash": "475362468868197354"
+        },
+        {
+          "file": "apps/tablo-crawler/deploy/troubleshoot.yml",
+          "hash": "11608725435265571426"
+        },
+        {
+          "file": "apps/tablo-crawler/deploy/update.yml",
+          "hash": "9777904354815602312"
+        },
+        {
+          "file": "apps/tablo-crawler/deploy/validate.yml",
+          "hash": "10890654098597261134"
+        },
+        {
+          "file": "apps/tablo-crawler/deploy/vault.yml",
+          "hash": "9822856297500397885"
+        },
+        {
+          "file": "apps/tablo-crawler/deploy/vault.yml.example",
+          "hash": "17793212554633233039"
+        },
+        {
+          "file": "apps/tablo-crawler/docs/getNewUtentiInvitoRistorante_Example.json",
+          "hash": "17015836494024890005"
+        },
+        {
+          "file": "apps/tablo-crawler/docs/getTavoliNewOrder_Example.json",
+          "hash": "12780931221154898267"
+        },
+        {
+          "file": "apps/tablo-crawler/docs/getTavolo_Example.json",
+          "hash": "1597914144245266750"
+        },
+        {
+          "file": "apps/tablo-crawler/monitored-restaurants.txt",
+          "hash": "14945779480566703976"
+        },
+        {
+          "file": "apps/tablo-crawler/monitoring-state.json.tmp",
+          "hash": "14558678244429915520"
+        },
+        {
+          "file": "apps/tablo-crawler/package.json",
+          "hash": "513243707719262626",
+          "deps": [
+            "shared-config",
+            "npm:bun-types@1.3.11",
+            "npm:typescript@5.9.3",
+            "shared-lib",
+            "npm:commander@12.1.0"
+          ]
+        },
+        {
+          "file": "apps/tablo-crawler/project.json",
+          "hash": "3358325827211531667"
+        },
+        {
+          "file": "apps/tablo-crawler/runbook-config.json",
+          "hash": "13743336715588480437"
+        },
+        {
+          "file": "apps/tablo-crawler/runbook.env.example",
+          "hash": "15264388406421172980"
+        },
+        {
+          "file": "apps/tablo-crawler/src/config.ts",
+          "hash": "1119773293968468178"
+        },
+        {
+          "file": "apps/tablo-crawler/src/filter.ts",
+          "hash": "4253036746085667543"
+        },
+        {
+          "file": "apps/tablo-crawler/src/format.ts",
+          "hash": "10409808941762952373"
+        },
+        {
+          "file": "apps/tablo-crawler/src/global.d.ts",
+          "hash": "4496350411223942408"
+        },
+        {
+          "file": "apps/tablo-crawler/src/heartbeat-tracker.ts",
+          "hash": "14646823353559742454"
+        },
+        {
+          "file": "apps/tablo-crawler/src/http.ts",
+          "hash": "3270549497236295028"
+        },
+        {
+          "file": "apps/tablo-crawler/src/index.ts",
+          "hash": "9965935455868801663"
+        },
+        {
+          "file": "apps/tablo-crawler/src/message.ts",
+          "hash": "17381492475222926497"
+        },
+        {
+          "file": "apps/tablo-crawler/src/monitoring-notifier.ts",
+          "hash": "1853964387867925398"
+        },
+        {
+          "file": "apps/tablo-crawler/src/restaurant-loader.ts",
+          "hash": "11416733422781370691"
+        },
+        {
+          "file": "apps/tablo-crawler/src/restaurant-monitor.ts",
+          "hash": "16029843691106329251"
+        },
+        {
+          "file": "apps/tablo-crawler/src/scanner.ts",
+          "hash": "12166294386953496056"
+        },
+        {
+          "file": "apps/tablo-crawler/src/state-manager.ts",
+          "hash": "10822668089931063073"
+        },
+        {
+          "file": "apps/tablo-crawler/src/table-tracker.ts",
+          "hash": "6261234208069901910"
+        },
+        {
+          "file": "apps/tablo-crawler/src/user-loader.ts",
+          "hash": "6310923492436539272"
+        },
+        {
+          "file": "apps/tablo-crawler/src/user-monitor.ts",
+          "hash": "4996484903730254842"
+        },
+        {
+          "file": "apps/tablo-crawler/src/users.ts",
+          "hash": "17200720079873997091"
+        },
+        {
+          "file": "apps/tablo-crawler/tsconfig.json",
+          "hash": "1545770359498571025"
+        }
+      ],
+      "project-shisha": [
+        {
+          "file": ".claude/settings.local.json",
+          "hash": "8205970291899211885"
+        },
+        {
+          "file": ".env.example",
+          "hash": "6103722587124920907"
+        },
+        {
+          "file": ".github/workflows/app-ci.yml",
+          "hash": "15864159759313422516"
+        },
+        {
+          "file": ".github/workflows/docker-publish.yml",
+          "hash": "10954123732763978111"
+        },
+        {
+          "file": ".github/workflows/fuel-advisor-bot-ci.yml",
+          "hash": "13504941211265084199"
+        },
+        {
+          "file": ".github/workflows/nx-ci.yml",
+          "hash": "2911905544121137996"
+        },
+        {
+          "file": ".github/workflows/reusable/build.yml",
+          "hash": "2753574737251892797"
+        },
+        {
+          "file": ".github/workflows/reusable/docker-build.yml",
+          "hash": "14809614196740380947"
+        },
+        {
+          "file": ".github/workflows/reusable/lint.yml",
+          "hash": "8047343893049182692"
+        },
+        {
+          "file": ".github/workflows/reusable/test.yml",
+          "hash": "2451434978057206292"
+        },
+        {
+          "file": ".github/workflows/tablo-crawler-ci.yml",
+          "hash": "11328879477553894480"
+        },
+        {
+          "file": ".mise.toml",
+          "hash": "1749416461153281603"
+        },
+        {
+          "file": ".nx/build.json",
+          "hash": "6981040242148692698"
+        },
+        {
+          "file": ".nx/lint.json",
+          "hash": "8054782642846175001"
+        },
+        {
+          "file": ".nx/test.json",
+          "hash": "10179720863025692069"
+        },
+        {
+          "file": ".nxignore",
+          "hash": "7955201252737988657"
+        },
+        {
+          "file": "bun.lock",
+          "hash": "7074602793849019236"
+        },
+        {
+          "file": "bunfig.toml",
+          "hash": "10571841106990813843"
+        },
+        {
+          "file": "docker/base/bun-base.Dockerfile",
+          "hash": "16559819466266424851"
+        },
+        {
+          "file": "docker/base/bun-compile-base.Dockerfile",
+          "hash": "14658681753392346520"
+        },
+        {
+          "file": "docker/scripts/entrypoint.sh",
+          "hash": "6791122675114576222"
+        },
+        {
+          "file": "docker/scripts/healthcheck.sh",
+          "hash": "9902638313548135820"
+        },
+        {
+          "file": "nx.json",
+          "hash": "10338525886389724186"
+        },
+        {
+          "file": "package.json",
+          "hash": "11769058977023547094"
+        },
+        {
+          "file": "tsconfig.json",
+          "hash": "12823149805543352674"
+        }
+      ]
+    }
+  },
+  "externalNodesHash": "6238770586236067508"
+}
