@@ -27,7 +27,7 @@ interface StationRecord {
     Latitudine: string
     Longitudine: string
     idImpianto: string
-    'Nom Impianto'?: string
+    'Nome Impianto'?: string
     Gestore?: string
     Bandiera: string
     Indirizzo: string
@@ -237,7 +237,7 @@ export function parseStationsCsv(csvContent: string): { stations: StationData[];
             // Create station with safe field access
             const station: StationData = {
                 mimit_id: record.idImpianto.trim(),
-                name: record['Nom Impianto']?.trim() || record.Gestore?.trim() || 'Sconosciuto',
+                name: record['Nome Impianto']?.trim() || record.Gestore?.trim() || 'Sconosciuto',
                 brand: record.Bandiera?.trim() || '',
                 address: record.Indirizzo?.trim() || '',
                 city: record.Comune?.trim() || '',

@@ -26,9 +26,9 @@ vi.mock('../config/logging', () => ({
 }))
 
 // Valid MIMIT Stations CSV format (pipe-delimited)
-// Note: Column "Nom Impianto" is the actual name field
+// Note: Column "Nome Impianto" is the actual name field
 const VALID_STATIONS_CSV = `Estrazione del 01/01/2024
-idImpianto|Gestore|BandieraTipo Impianto|Nom Impianto|Indirizzo|Comune|Provincia|Latitudine|Longitudine
+idImpianto|Gestore|BandieraTipo Impianto|Nome Impianto|Indirizzo|Comune|Provincia|Latitudine|Longitudine
 12345|Gestore1|ENI|Gas Station Roma|Via Roma 1|Roma|RM|41.9028|12.4964
 67890|Gestore2|SHELL|Gas Station Milano|Via Milano 1|Milano|MI|45.4642|9.1900`
 
@@ -73,7 +73,7 @@ describe('parseStationsCsv', () => {
 
   it('should skip records with invalid coordinates', () => {
     const csv = `Estrazione del 01/01/2024
-idImpianto|Gestore|BandieraTipo Impianto|Nom Impianto|Indirizzo|Comune|Provincia|Latitudine|Longitudine
+idImpianto|Gestore|BandieraTipo Impianto|Nome Impianto|Indirizzo|Comune|Provincia|Latitudine|Longitudine
 12345|Gestore1|ENI|Valid Station|Via Roma 1|Roma|RM|41.9028|12.4964
 99999|Gestore2|BAD|Bad Station|Via Nowhere|Milano|MI|999.0|999.0`
 
@@ -87,7 +87,7 @@ idImpianto|Gestore|BandieraTipo Impianto|Nom Impianto|Indirizzo|Comune|Provincia
 
   it('should filter by province when configured', () => {
     const csv = `Estrazione del 01/01/2024
-idImpianto|Gestore|BandieraTipo Impianto|Nom Impianto|Indirizzo|Comune|Provincia|Latitudine|Longitudine
+idImpianto|Gestore|BandieraTipo Impianto|Nome Impianto|Indirizzo|Comune|Provincia|Latitudine|Longitudine
 12345|Gestore1|ENI|Station One|Via Roma 1|Roma|RM|41.9028|12.4964
 67890|Gestore2|SHELL|Station Two|Via Milano 1|Milano|MI|45.4642|9.19`
 
