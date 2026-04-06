@@ -14,7 +14,7 @@ export interface StationData {
 }
 
 export interface PriceData {
-    station_id: number // We will map mimit_id to internal DB id later, so here let's just use mimit_id as string temporarily
+    station_id: number
     mimit_id: string
     date: string
     fuel_type: string
@@ -27,7 +27,7 @@ interface StationRecord {
     Latitudine: string
     Longitudine: string
     idImpianto: string
-    'Nome Impianto'?: string
+    'Nom Impianto'?: string
     Gestore?: string
     Bandiera: string
     Indirizzo: string
@@ -42,114 +42,366 @@ interface PriceRecord {
     dtComunica?: string
 }
 
-export function parseStationsCsv(csvContent: string): StationData[] {
-    // MIMIT stations CSV format:
-    // Line 1: Estrazione del <date>
-    // Line 2: idImpianto|Gestore|Bandiera|Tipo Impianto|Nome Impianto|Indirizzo|Comune|Provincia|Latitudine|Longitudine
-    const records = parse(csvContent, {
-        delimiter: '|',
-        columns: true,
-        skip_empty_lines: true,
-        from_line: 2, // skip the "Estrazione del" line
-        relax_quotes: true,
-        quote: false
-    }) as StationRecord[]
+// Validation constants
+const MIN_LATITUDE = -90
+const MAX_LATITUDE = 90
+const MIN_LONGITUDE = -180
+const MAX_LONGITUDE = 180
+const MIN_PRICE = 0.1  // EUR 0.10 minimum reasonable fuel price
+const MAX_PRICE = 10.0 // EUR 10.00 maximum reasonable fuel price
 
-    const stations: StationData[] = []
-
-    for (const record of records) {
-        const province = (record.Provincia || '').trim().toUpperCase()
-        const city = (record.Comune || '').trim().toUpperCase()
-
-        // Apply filters
-        if (config.FILTER_PROVINCE && province !== config.FILTER_PROVINCE.toUpperCase()) {
-            continue
-        }
-        if (config.FILTER_CITY && city !== config.FILTER_CITY.toUpperCase()) {
-            continue
-        }
-
-        const lat = parseFloat(record.Latitudine)
-        const lon = parseFloat(record.Longitudine)
-
-        stations.push({
-            mimit_id: record.idImpianto,
-            name: record['Nome Impianto'] || record.Gestore || 'Sconosciuto',
-            brand: record.Bandiera || '',
-            address: record.Indirizzo || '',
-            city: record.Comune || '',
-            province: record.Provincia || '',
-            latitude: isNaN(lat) ? 0 : lat,
-            longitude: isNaN(lon) ? 0 : lon
-        })
-    }
-
-    logger.info(`Parsed ${stations.length} stations matching filters`)
-    return stations
+// Stats for parsing results
+export interface ParseStats {
+    totalRecords: number
+    validRecords: number
+    skippedRecords: number
+    warnings: string[]
+    errors: string[]
 }
 
-export function parsePricesCsv(csvContent: string, validMimitIds: Set<string>): PriceData[] {
-    // MIMIT prices CSV format:
-    // Line 1: Estrazione del <date>
-    // Line 2: idImpianto|descCarburante|prezzo|isSelf|dtComu (note: dtComu might be truncated in header but values look like '05/03/2026 21:30:06')
-    const records = parse(csvContent, {
-        delimiter: '|',
-        columns: true,
-        skip_empty_lines: true,
-        from_line: 2, // skip the "Estrazione del" line
-        relax_quotes: true,
-        quote: false
-    }) as PriceRecord[]
+function createStats(): ParseStats {
+    return {
+        totalRecords: 0,
+        validRecords: 0,
+        skippedRecords: 0,
+        warnings: [],
+        errors: [],
+    }
+}
 
-    const prices: PriceData[] = []
+/**
+ * Validate coordinate values
+ */
+function isValidCoordinate(lat: number, lon: number): boolean {
+    return (
+        !isNaN(lat) &&
+        !isNaN(lon) &&
+        lat >= MIN_LATITUDE &&
+        lat <= MAX_LATITUDE &&
+        lon >= MIN_LONGITUDE &&
+        lon <= MAX_LONGITUDE
+    )
+}
 
-    for (const record of records) {
-        // Only process prices for stations we care about
-        if (!validMimitIds.has(record.idImpianto)) {
-            continue
-        }
+/**
+ * Validate price value
+ */
+function isValidPrice(price: number): boolean {
+    return !isNaN(price) && price >= MIN_PRICE && price <= MAX_PRICE
+}
 
-        // Filter only self-service prices (isSelf = 1)
-        if (record.isSelf !== '1') {
-            continue
-        }
+/**
+ * Validate date string format (YYYY-MM-DD)
+ */
+function isValidDate(dateStr: string): boolean {
+    if (!dateStr || dateStr.length !== 10) return false
+    const regex = /^\d{4}-\d{2}-\d{2}$/
+    if (!regex.test(dateStr)) return false
+    const date = new Date(dateStr)
+    return !isNaN(date.getTime())
+}
 
-        const price = parseFloat(record.prezzo)
-        if (isNaN(price)) {
-            continue
-        }
+/**
+ * Validate required string field
+ */
+function isValidString(value: unknown): value is string {
+    return typeof value === 'string' && value.trim().length > 0
+}
 
-        // Format date from "DD/MM/YYYY HH:MM:SS" to "YYYY-MM-DD"
-        // Handle both 'dtComu' and 'dtComunica' column names just in case
-        const dtStr = record.dtComu || record.dtComunica || ''
-        let dateStr = ''
-        if (dtStr) {
-            const parts = dtStr.split(' ')[0].split('/') // ["DD", "MM", "YYYY"]
-            if (parts.length === 3) {
-                dateStr = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`
-            }
-        }
-
-        // Fallback date: today (YYYY-MM-DD)
-        if (!dateStr) {
-            dateStr = new Date().toISOString().split('T')[0]
-        }
-
-        // Map Italian fuel names to standard ones
-        const fuelSource = (record.descCarburante || '').trim().toUpperCase()
-        let fuelType = fuelSource
-        if (fuelSource === 'BENZINA') fuelType = 'GASOLINE'
-        else if (fuelSource.includes('GASOLIO')) fuelType = 'DIESEL'
-
-        prices.push({
-            station_id: 0, // Will be filled when inserting using DB id
-            mimit_id: record.idImpianto,
-            date: dateStr,
-            fuel_type: fuelType,
-            price_eur_per_liter: price
-        })
+/**
+ * Check if content appears to be a valid CSV
+ * Handles the MIMIT format which has an "Estrazione del..." line before the header
+ */
+function validateCsvHeader(csvContent: string, expectedDelimiter: string): { valid: boolean; error?: string } {
+    if (!csvContent || csvContent.trim().length === 0) {
+        return { valid: false, error: 'CSV content is empty' }
     }
 
-    logger.info(`Parsed ${prices.length} self-service prices for known stations`)
-    return prices
+    const lines = csvContent.split('\n').filter(l => l.trim().length > 0)
+    if (lines.length < 2) {
+        return { valid: false, error: `CSV has only ${lines.length} line(s), expected at least 2 (header + data)` }
+    }
+
+    // Find the actual header line (skip "Estrazione del..." line if present)
+    let headerLine = lines[0]
+    let headerIndex = 0
+
+    // If first line starts with "Estrazione del", use second line as header
+    if (headerLine.startsWith('Estrazione del') || !headerLine.includes(expectedDelimiter)) {
+        if (lines.length < 2) {
+            return { valid: false, error: 'CSV header not found after extraction date line' }
+        }
+        headerLine = lines[1]
+        headerIndex = 1
+    }
+
+    // Check if header uses the expected delimiter
+    if (!headerLine.includes(expectedDelimiter)) {
+        return { valid: false, error: `Header does not contain delimiter '${expectedDelimiter}'` }
+    }
+
+    return { valid: true, error: undefined }
+}
+
+/**
+ * Safely parse float with fallback
+ */
+function safeParseFloat(value: string | undefined, fallback: number = NaN): number {
+    if (value === undefined || value === null || value.trim() === '') {
+        return fallback
+    }
+    const parsed = parseFloat(value.trim())
+    return isNaN(parsed) ? fallback : parsed
+}
+
+/**
+ * Safely parse integer with fallback
+ */
+function safeParseInt(value: string | undefined, fallback: number = NaN): number {
+    if (value === undefined || value === null || value.trim() === '') {
+        return fallback
+    }
+    const parsed = parseInt(value.trim(), 10)
+    return isNaN(parsed) ? fallback : parsed
+}
+
+export function parseStationsCsv(csvContent: string): { stations: StationData[]; stats: ParseStats } {
+    const stats = createStats()
+    const stations: StationData[] = []
+
+    // Validate input
+    const validation = validateCsvHeader(csvContent, '|')
+    if (!validation.valid) {
+        logger.error(`Invalid stations CSV: ${validation.error}`)
+        stats.errors.push(validation.error!)
+        return { stations, stats }
+    }
+
+    // Check for extraction date line (first line should be "Estrazione del ...")
+    const firstLine = csvContent.split('\n')[0].trim()
+    if (firstLine.startsWith('Estrazione del')) {
+        stats.warnings.push('Detected extraction date header line, skipping...')
+    }
+
+    try {
+        const records = parse(csvContent, {
+            delimiter: '|',
+            columns: true,
+            skip_empty_lines: true,
+            from_line: 2,
+            relax_quotes: true,
+            quote: false,
+            on_record: (record) => {
+                stats.totalRecords++
+                return record
+            },
+        }) as StationRecord[]
+
+        for (const record of records) {
+            // Validate required fields
+            if (!record.idImpianto || !isValidString(record.idImpianto)) {
+                stats.skippedRecords++
+                if (stats.warnings.length < 10) {
+                    stats.warnings.push(`Skipping record with missing idImpianto`)
+                }
+                continue
+            }
+
+            const lat = safeParseFloat(record.Latitudine, NaN)
+            const lon = safeParseFloat(record.Longitudine, NaN)
+
+            // Validate coordinates
+            if (!isValidCoordinate(lat, lon)) {
+                stats.skippedRecords++
+                if (stats.warnings.length < 10) {
+                    stats.warnings.push(
+                        `Invalid coordinates for station ${record.idImpianto}: lat=${record.Latitudine}, lon=${record.Longitudine}`
+                    )
+                }
+                continue
+            }
+
+            // Apply filters
+            const province = (record.Provincia || '').trim().toUpperCase()
+            const city = (record.Comune || '').trim().toUpperCase()
+
+            if (config.FILTER_PROVINCE && province !== config.FILTER_PROVINCE.toUpperCase()) {
+                stats.skippedRecords++
+                continue
+            }
+            if (config.FILTER_CITY && city !== config.FILTER_CITY.toUpperCase()) {
+                stats.skippedRecords++
+                continue
+            }
+
+            // Create station with safe field access
+            const station: StationData = {
+                mimit_id: record.idImpianto.trim(),
+                name: record['Nom Impianto']?.trim() || record.Gestore?.trim() || 'Sconosciuto',
+                brand: record.Bandiera?.trim() || '',
+                address: record.Indirizzo?.trim() || '',
+                city: record.Comune?.trim() || '',
+                province: record.Provincia?.trim() || '',
+                latitude: lat,
+                longitude: lon,
+            }
+
+            stations.push(station)
+            stats.validRecords++
+        }
+    } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error)
+        logger.error(`Error parsing stations CSV: ${errorMsg}`)
+        stats.errors.push(`Parse error: ${errorMsg}`)
+    }
+
+    logger.info(`Parsed ${stations.length} stations matching filters`, {
+        total: stats.totalRecords,
+        valid: stats.validRecords,
+        skipped: stats.skippedRecords,
+        warnings: stats.warnings.length,
+    })
+
+    if (stats.warnings.length > 0 && stats.warnings.length <= 5) {
+        stats.warnings.forEach(w => logger.warn(w))
+    }
+
+    return { stations, stats }
+}
+
+export function parsePricesCsv(
+    csvContent: string,
+    validMimitIds: Set<string>
+): { prices: PriceData[]; stats: ParseStats } {
+    const stats = createStats()
+    const prices: PriceData[] = []
+
+    // Validate input
+    const validation = validateCsvHeader(csvContent, '|')
+    if (!validation.valid) {
+        logger.error(`Invalid prices CSV: ${validation.error}`)
+        stats.errors.push(validation.error!)
+        return { prices, stats }
+    }
+
+    // Check for extraction date line
+    const firstLine = csvContent.split('\n')[0].trim()
+    if (firstLine.startsWith('Estrazione del')) {
+        stats.warnings.push('Detected extraction date header line, skipping...')
+    }
+
+    try {
+        const records = parse(csvContent, {
+            delimiter: '|',
+            columns: true,
+            skip_empty_lines: true,
+            from_line: 2,
+            relax_quotes: true,
+            quote: false,
+            on_record: (record) => {
+                stats.totalRecords++
+                return record
+            },
+        }) as PriceRecord[]
+
+        for (const record of records) {
+            // Validate required fields
+            if (!record.idImpianto || !isValidString(record.idImpianto)) {
+                stats.skippedRecords++
+                if (stats.warnings.length < 10) {
+                    stats.warnings.push('Skipping record with missing station id')
+                }
+                continue
+            }
+
+            // Only process prices for stations we care about
+            if (validMimitIds.size > 0 && !validMimitIds.has(record.idImpianto.trim())) {
+                stats.skippedRecords++
+                continue
+            }
+
+            // Filter only self-service prices (isSelf = 1)
+            const isSelf = record.isSelf?.trim()
+            if (isSelf !== '1') {
+                stats.skippedRecords++
+                continue
+            }
+
+            // Parse and validate price
+            const price = safeParseFloat(record.prezzo, NaN)
+            if (!isValidPrice(price)) {
+                stats.skippedRecords++
+                if (stats.warnings.length < 10) {
+                    stats.warnings.push(
+                        `Invalid price for station ${record.idImpianto}: ${record.prezzo}`
+                    )
+                }
+                continue
+            }
+
+            // Parse date
+            const dtStr = record.dtComu || record.dtComunica || ''
+            let dateStr = ''
+            if (dtStr && isValidString(dtStr)) {
+                const parts = dtStr.split(' ')[0].split('/')
+                if (parts.length === 3) {
+                    const day = safeParseInt(parts[0], 0)
+                    const month = safeParseInt(parts[1], 0)
+                    const year = safeParseInt(parts[2], 0)
+                    if (day >= 1 && day <= 31 && month >= 1 && month <= 12 && year >= 2000) {
+                        dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+                    }
+                }
+            }
+
+            // Fallback to today's date
+            if (!dateStr || !isValidDate(dateStr)) {
+                dateStr = new Date().toISOString().split('T')[0]
+                stats.warnings.push(`Using fallback date for station ${record.idImpianto}`)
+            }
+
+            // Map Italian fuel names to standard ones
+            const fuelSource = (record.descCarburante || '').trim().toUpperCase()
+            let fuelType = fuelSource
+            if (fuelSource === 'BENZINA') fuelType = 'GASOLINE'
+            else if (fuelSource.includes('GASOLIO')) fuelType = 'DIESEL'
+
+            const priceData: PriceData = {
+                station_id: 0,
+                mimit_id: record.idImpianto.trim(),
+                date: dateStr,
+                fuel_type: fuelType,
+                price_eur_per_liter: price,
+            }
+
+            prices.push(priceData)
+            stats.validRecords++
+        }
+    } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error)
+        logger.error(`Error parsing prices CSV: ${errorMsg}`)
+        stats.errors.push(`Parse error: ${errorMsg}`)
+    }
+
+    logger.info(`Parsed ${prices.length} self-service prices for known stations`, {
+        total: stats.totalRecords,
+        valid: stats.validRecords,
+        skipped: stats.skippedRecords,
+        warnings: stats.warnings.length,
+    })
+
+    if (stats.warnings.length > 0 && stats.warnings.length <= 5) {
+        stats.warnings.forEach(w => logger.warn(w))
+    }
+
+    return { prices, stats }
+}
+
+// Keep backwards compatible simple API
+export function parseStationsCsvSimple(csvContent: string): StationData[] {
+    return parseStationsCsv(csvContent).stations
+}
+
+export function parsePricesCsvSimple(csvContent: string, validMimitIds: Set<string>): PriceData[] {
+    return parsePricesCsv(csvContent, validMimitIds).prices
 }
