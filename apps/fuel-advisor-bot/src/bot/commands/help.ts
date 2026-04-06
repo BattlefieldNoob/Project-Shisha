@@ -4,19 +4,18 @@ export function handleHelp(bot: TelegramBot, msg: TelegramBot.Message) {
     const helpMsg = `📖 **Fuel Advisor Help**\n\n` +
         `This bot helps you find the best time to refuel based on open data from MIMIT.\n\n` +
         `**Available Commands:**\n` +
-        `- /today : Shows today's prices for your favorite stations and asks for your tank level to provide advice.\n` +
+        `- /today : Shows today's prices for your favorite stations.\n` +
         `- /settings : View and manage your preferences.\n` +
         `- /start : Restart the welcome flow.\n` +
         `- /help : Show this help message.\n\n` +
         `**Adding Stations:**\n` +
         `1. Send your **Location** (📎 -> Location) to find stations near you.\n` +
-        `2. Click the "**➕ Add**" button under any station result.\n` +
-        `*Alternatively, use \`/addstation <MIMIT_ID>\` if you know the ID.*\n\n` +
+        `2. Click the "**➕ Add**" button under any station result.\n\n` +
         `**Managing Settings:**\n` +
-        `- \`/setfuel <GASOLINE|DIESEL>\` : Set your preferred fuel type.\n` +
-        `- \`/setnotify <HH:MM>\` : Enable daily notifications (e.g., \`/setnotify 08:30\`).\n` +
-        `- \`/setnotify off\` : Disable notifications.\n` +
-        `- \`/removestation <MIMIT_ID>\` : Remove a station from favorites.\n\n` +
+        `- \`/setfuel\` : Set your preferred fuel type (GASOLINE or DIESEL).\n` +
+        `- \`/setnotify\` : Set when you want daily price updates.\n` +
+        `- \`/removestation\` : Remove a station from your favorites.\n\n` +
+        `*All setting commands show interactive buttons when used without arguments.*\n\n` +
         `**Daily Push:**\n` +
         `If enabled, I will send you a price update every day at your chosen time.`
 

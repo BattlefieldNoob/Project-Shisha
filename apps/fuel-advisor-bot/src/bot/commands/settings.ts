@@ -1,6 +1,6 @@
 import TelegramBot from 'node-telegram-bot-api'
 import { getUserByChatId, getUserPreferences, upsertUserPreferences, getStationByMimitId, getStationById, addFavoriteStation, removeFavoriteStation } from '../../db/index'
-import { formatStationDetails } from '../../utils/telegram'
+import { formatStationDetails, getFuelTypeKeyboard, getNotificationTimeKeyboard, getRemoveStationKeyboard } from '../../utils/telegram'
 import { logger } from '../../config/logging'
 
 export function handleSettings(bot: TelegramBot, msg: TelegramBot.Message) {
@@ -35,12 +35,10 @@ export function handleSettings(bot: TelegramBot, msg: TelegramBot.Message) {
             `⛽ **Favorite Stations:**\n${stationsList}\n` +
             `🏎️ **Fuel Type:** ${fuelType}\n` +
             `🔔 **Daily Notification:** ${notifyEnabled} (at ${notifyTime})\n\n` +
-            `*To change these, send a message like:*\n` +
-            `- \`/addstation 12345\` (replace 12345 with MIMIT ID. Search https://carburanti.mise.gov.it to find IDs)\n` +
-            `- \`/removestation 12345\` (remove a station)\n` +
-            `- \`/setfuel GASOLINE\` or \`/setfuel DIESEL\`\n` +
-            `- \`/setnotify 08:30\` (to enable and set time)\n` +
-            `- \`/setnotify off\` (to disable notifications)\n`
+            `*Quick actions:*\n` +
+            `- \`/setfuel\` — Change fuel type\n` +
+            `- \`/setnotify\` — Set notification time\n` +
+            `- \`/removestation\` — Remove a station\n`
 
         bot.sendMessage(msg.chat.id, msgText, { parse_mode: 'Markdown' })
     } catch (error) {
@@ -74,12 +72,32 @@ export function handleRemoveStation(bot: TelegramBot, msg: TelegramBot.Message, 
     const chatId = msg.chat.id.toString()
     const mimitId = match ? match[1] : null
 
-    if (!mimitId) return bot.sendMessage(msg.chat.id, 'Format: /removestation <MIMIT_ID>')
-
     try {
         const user = getUserByChatId(chatId)
         if (!user) return bot.sendMessage(msg.chat.id, 'Please run /start first.')
 
+        const prefs = getUserPreferences(user.id)
+        if (!prefs || !prefs.favorite_stations || prefs.favorite_stations.length === 0) {
+            return bot.sendMessage(msg.chat.id, "You don't have any favorite stations to remove.")
+        }
+
+        // If no argument provided, show inline keyboard to select station to remove
+        if (!mimitId) {
+            const stationsToRemove = prefs.favorite_stations
+                .map(id => getStationById(id))
+                .filter((s): s is NonNullable<typeof s> => s !== undefined)
+
+            if (stationsToRemove.length === 0) {
+                return bot.sendMessage(msg.chat.id, "You don't have any favorite stations to remove.")
+            }
+
+            return bot.sendMessage(msg.chat.id, '🔧 **Remove a Station**\n\nSelect which station to remove:', {
+                parse_mode: 'Markdown',
+                reply_markup: getRemoveStationKeyboard(stationsToRemove)
+            })
+        }
+
+        // Argument provided - directly remove
         const station = getStationByMimitId(mimitId) as { id: number, name: string } | undefined
         if (!station) {
             return bot.sendMessage(msg.chat.id, `Station with ID ${mimitId} not found in database.`)
@@ -94,15 +112,25 @@ export function handleRemoveStation(bot: TelegramBot, msg: TelegramBot.Message, 
 
 export function handleSetFuel(bot: TelegramBot, msg: TelegramBot.Message, match: RegExpExecArray | null) {
     const chatId = msg.chat.id.toString()
-    let fuelType = match ? match[1].toUpperCase() : ''
-
-    if (fuelType !== 'GASOLINE' && fuelType !== 'DIESEL') {
-        return bot.sendMessage(msg.chat.id, 'Format: /setfuel GASOLINE or /setfuel DIESEL')
-    }
+    const fuelType = match ? match[1].toUpperCase() : ''
 
     try {
         const user = getUserByChatId(chatId)
         if (!user) return bot.sendMessage(msg.chat.id, 'Please run /start first.')
+
+        // If no argument provided, show inline keyboard
+        if (!fuelType) {
+            return bot.sendMessage(msg.chat.id, '⛽ **Select Your Fuel Type**\n\nWhich type of fuel do you use?', {
+                parse_mode: 'Markdown',
+                reply_markup: getFuelTypeKeyboard()
+            })
+        }
+
+        if (fuelType !== 'GASOLINE' && fuelType !== 'DIESEL') {
+            return bot.sendMessage(msg.chat.id, '❌ Invalid fuel type. Please select:', {
+                reply_markup: getFuelTypeKeyboard()
+            })
+        }
 
         upsertUserPreferences(user.id, { fuel_type: fuelType })
         bot.sendMessage(msg.chat.id, `✅ Fuel type set to: **${fuelType}**`, { parse_mode: 'Markdown' })
@@ -119,6 +147,14 @@ export function handleSetNotify(bot: TelegramBot, msg: TelegramBot.Message, matc
         const user = getUserByChatId(chatId)
         if (!user) return bot.sendMessage(msg.chat.id, 'Please run /start first.')
 
+        // If no argument provided, show inline keyboard
+        if (!val) {
+            return bot.sendMessage(msg.chat.id, '🔔 **Set Daily Notification Time**\n\nChoose when you want to receive your daily fuel price update:', {
+                parse_mode: 'Markdown',
+                reply_markup: getNotificationTimeKeyboard()
+            })
+        }
+
         if (val === 'off') {
             upsertUserPreferences(user.id, { notification_enabled: 0 })
             return bot.sendMessage(msg.chat.id, '✅ Daily notifications disabled.')
@@ -128,7 +164,9 @@ export function handleSetNotify(bot: TelegramBot, msg: TelegramBot.Message, matc
         const timeRegex = /^([01]?[0-9]|2[0-3]):([0-5][0-9])$/
         const timeMatch = val.match(timeRegex)
         if (!timeMatch) {
-            return bot.sendMessage(msg.chat.id, 'Format: /setnotify HH:MM (e.g. 08:30) or /setnotify off')
+            return bot.sendMessage(msg.chat.id, '❌ Invalid time format. Please select:', {
+                reply_markup: getNotificationTimeKeyboard()
+            })
         }
 
         const hour = parseInt(timeMatch[1], 10)
