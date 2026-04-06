@@ -5,30 +5,6 @@
     "sharedGlobals": ["{workspaceRoot}/bun.lock", "{workspaceRoot}/tsconfig.base.json"],
     "production": ["!{projectRoot}/**/*.spec.ts", "!{projectRoot}/**/*.test.ts", "!{projectRoot}/**/*.spec.tsx", "!{projectRoot}/**/*.test.tsx", "!{projectRoot}/**/test/**", "!{projectRoot}/**/__tests__/**", "!{projectRoot}/jest.config.*", "!{projectRoot}/vitest.config.*", "!{projectRoot}/vitest.workspace.ts"]
   },
-  "plugins": [
-    {
-      "plugin": "@nx/js/plugin",
-      "options": {
-        "targetDefaults": {
-          "build": {
-            "dependsOn": ["^build"],
-            "cache": true,
-            "outputs": ["{projectRoot}/dist"]
-          },
-          "test": {
-            "cache": true,
-            "inputs": ["default", "^production"]
-          },
-          "typecheck": {
-            "cache": true
-          },
-          "lint": {
-            "cache": true
-          }
-        }
-      }
-    }
-  ],
   "targetDefaults": {
     "build": {
       "dependsOn": ["^build"],
@@ -53,6 +29,6 @@
     }
   },
   "defaultBase": "main",
-  "useInferencePlugins": true,
+  "useInferencePlugins": false,
   "inferFromPackageJson": true
 }
