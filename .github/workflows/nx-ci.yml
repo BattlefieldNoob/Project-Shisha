@@ -31,28 +31,23 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Setup NX
-        uses: nrwl/nx-set-up@v1
-        with:
-          nx-version: latest
-
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
       - name: Show affected projects
-        run: nx show projects --affected --files=${{ github.event.inputs.files }}
+        run: npx nx show projects --affected
 
       - name: Type check affected
-        run: nx affected --target=typecheck --parallel=3
+        run: npx nx affected --target=typecheck --parallel=3
 
       - name: Test affected
-        run: nx affected --target=test --parallel=3
+        run: npx nx affected --target=test --parallel=3
 
       - name: Lint affected
-        run: nx affected --target=lint --parallel=3
+        run: npx nx affected --target=lint --parallel=3
 
       - name: Build affected
-        run: nx affected --target=build --parallel=3
+        run: npx nx affected --target=build --parallel=3
 
       - name: Upload build artifacts
         if: success()
@@ -83,21 +78,16 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Setup NX
-        uses: nrwl/nx-set-up@v1
-        with:
-          nx-version: latest
-
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
       - name: Build affected apps
-        run: nx affected --target=build --parallel=3
+        run: npx nx affected --target=build --parallel=3
 
       - name: Get affected apps list
         id: affected-apps
         run: |
-          APPS=$(nx show projects --affected --with-target docker:build --plain 2>/dev/null | tr '\n' ' ' || echo "")
+          APPS=$(npx nx show projects --affected --with-target docker:build --plain 2>/dev/null | tr '\n' ' ' || echo "")
           echo "apps=$APPS" >> $GITHUB_OUTPUT
         shell: bash
 
@@ -127,7 +117,7 @@ jobs:
             docker push "ghcr.io/${{ github.repository }}/$app:${{ github.sha }}"
           done
 
-# Workflow to visualize the project graph
+  # Workflow to visualize the project graph
   graph:
     name: Generate Project Graph
     runs-on: ubuntu-latest
@@ -137,16 +127,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup NX
-        uses: nrwl/nx-set-up@v1
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          nx-version: latest
+          bun-version: latest
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
       - name: Generate project graph
-        run: nx graph --file=project-graph.json
+        run: npx nx graph --file=project-graph.json
         continue-on-error: true
 
       - name: Upload project graph
