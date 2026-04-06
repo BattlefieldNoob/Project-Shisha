@@ -3,7 +3,7 @@
   "namedInputs": {
     "default": ["{projectRoot}/**/*", "sharedGlobals"],
     "sharedGlobals": ["{workspaceRoot}/bun.lock", "{workspaceRoot}/tsconfig.base.json"],
-    "production": ["!{projectRoot}/**/*.spec.ts", "!{projectRoot}/**/*.test.ts", "!{projectRoot}/**/*.spec.tsx", "!{projectRoot}/**/*.test.tsx", "!{projectRoot}/**/test/**", "!{projectRoot}/**/__tests__/**", "!{projectRoot}/jest.config.*", "!{projectRoot}/vitest.config.*", "!{projectRoot}/vitest.workspace.ts"]
+    "production": ["!{projectRoot}/**/*.spec.ts", "!{projectRoot}/**/*.test.ts"]
   },
   "targetDefaults": {
     "build": {
@@ -28,7 +28,7 @@
       "cache": false
     }
   },
-  "defaultBase": "main",
+  "defaultBase": "origin/main",
   "useInferencePlugins": false,
   "inferFromPackageJson": true
 }
