@@ -4,7 +4,7 @@ export function calculateAdvice(stats: AdviceDetails, level: number): { action: 
     // If sample size is too small or today's price is missing, fallback to level-based logic
     if (stats.todayPrice === null || stats.sampleSize < 3) {
         let action: AdviceAction = 'WAIT'
-        let reasons: AdviceReason[] = []
+        const reasons: AdviceReason[] = []
 
         if (level < 0.25) {
             action = 'FILL'
@@ -23,7 +23,7 @@ export function calculateAdvice(stats: AdviceDetails, level: number): { action: 
 
     const reasons: AdviceReason[] = []
 
-    const mean = stats.mean15d!
+    const _mean = stats.mean15d!
     const stddev = stats.stddev15d || 0 // if it's 0 or null, threshold is basically mean
     const delta = stats.deltaVsMean15d!
     const trend = stats.trend3d || 0

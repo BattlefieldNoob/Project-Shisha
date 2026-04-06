@@ -8,9 +8,8 @@ import { getAdvice } from '../advisor/advisor'
 import { formatAdviceMessage, getTankLevelKeyboard, formatStationDetails } from '../utils/telegram'
 
 export function startScheduler() {
-  const cronExpression = `${config.SCRAPER_RUN_HOUR} * * * *` // For testing, just hour. If minute was defined we'd use `${minute} ${hour} * * *`
-  // Actually, let's use a standard daily cron: minute hour * * *
-  // Assuming SCRAPER_RUN_HOUR is just an hour, we can default minute to 0.
+  // Use a standard daily cron: minute hour * * *
+  // SCRAPER_RUN_HOUR defines the hour, minute defaults to 0.
   const hour = config.SCRAPER_RUN_HOUR
   const minute = 0 // default
 

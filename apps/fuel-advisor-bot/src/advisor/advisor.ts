@@ -11,7 +11,7 @@ export async function getAdvice(input: AdviceInput): Promise<AdviceOutput> {
     // getLast15DaysPrices returns DESC (newest first).
     // Let's ensure prices is purely an array of numbers representing newest to oldest
     const priceValues = historicalPrices.map(p => p.price_eur_per_liter)
-    const dates = historicalPrices.map(p => p.date)
+    const _dates = historicalPrices.map(p => p.date)
 
     const sampleSize = historicalPrices.length
 

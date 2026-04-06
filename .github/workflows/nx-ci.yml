@@ -18,7 +18,7 @@ jobs:
   ci:
     name: NX CI
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -35,23 +35,23 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Show affected projects
-        run: npx nx show projects --affected
+        run: bun x nx show projects --affected
 
       - name: Type check affected
-        run: npx nx affected --target=typecheck --parallel=3
+        run: bun x nx affected --target=typecheck --parallel=3
 
       - name: Test affected
-        run: npx nx affected --target=test --parallel=3
+        run: bun x nx affected --target=test --parallel=3
 
       - name: Lint affected
-        run: npx nx affected --target=lint --parallel=3
+        run: bun x nx affected --target=lint --parallel=3
 
       - name: Build affected
-        run: npx nx affected --target=build --parallel=3
+        run: bun x nx affected --target=build --parallel=3
 
       - name: Upload build artifacts
         if: success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: nx-affected-dist
           path: apps/*/dist
@@ -82,12 +82,12 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Build affected apps
-        run: npx nx affected --target=build --parallel=3
+        run: bun x nx affected --target=build --parallel=3
 
       - name: Get affected apps list
         id: affected-apps
         run: |
-          APPS=$(npx nx show projects --affected --with-target docker:build --plain 2>/dev/null | tr '\n' ' ' || echo "")
+          APPS=$(bun x nx show projects --affected --with-target docker:build --plain)
           echo "apps=$APPS" >> $GITHUB_OUTPUT
         shell: bash
 
@@ -136,11 +136,10 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Generate project graph
-        run: npx nx graph --file=project-graph.json
-        continue-on-error: true
+        run: bun x nx graph --file=project-graph.json
 
       - name: Upload project graph
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: project-graph
           path: project-graph.json

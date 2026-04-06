@@ -36,7 +36,7 @@ export class FileRestaurantLoader implements RestaurantLoader {
         try {
             // Check if file exists
             await access(filePath, constants.F_OK);
-        } catch (error) {
+        } catch (_error) {
             // File doesn't exist, create template
             console.log(`📄 Restaurant IDs file not found at ${filePath}. Creating template file...`);
             try {

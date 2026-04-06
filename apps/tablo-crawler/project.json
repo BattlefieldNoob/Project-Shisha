@@ -39,7 +39,7 @@
     "lint": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "eslint src/ --fix",
+        "command": "npx eslint src/ --fix",
         "cwd": "apps/tablo-crawler"
       },
       "cache": true

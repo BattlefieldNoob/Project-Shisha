@@ -6,7 +6,7 @@ export function formatDistance(d: string | undefined): string {
   return n.toFixed(1);
 }
 
-export function formatTavoloMessage(t: TavoloDetails, dateString: string, formattedDistance: string): string {
+export function formatTavoloMessage(t: TavoloDetails, dateString: string, _formattedDistance: string): string {
   const lines: string[] = [];
   lines.push(`🍽️ ${t.nomeRistorante}`);
   lines.push(`📅 Data: ${dateString}`);
@@ -48,7 +48,7 @@ export function formatTableDateTime(quando?: string, prefix: string = '📅 Orar
 
     const formatted = date.toLocaleDateString('it-IT', options);
     return `${prefix}: ${formatted}`;
-  } catch (error) {
+  } catch (_error) {
     return `${prefix}: ${quando} (formato non valido)`;
   }
 }

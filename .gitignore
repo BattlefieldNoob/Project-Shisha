@@ -85,3 +85,6 @@ bun.lockb
 # Local development files
 *.local
 *.dev
+
+# NX cache
+.nx/

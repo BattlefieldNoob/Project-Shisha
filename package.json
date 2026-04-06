@@ -71,7 +71,10 @@
     "compose:tablo-crawler": "docker compose -f apps/tablo-crawler/compose.yml"
   },
   "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.58.0",
+    "@typescript-eslint/parser": "^8.58.0",
     "bun-types": "^1.3.10",
+    "eslint": "^10.2.0",
     "nx": "^20.0.0",
     "prettier": "^3.2.0",
     "typescript": "^5.3.3"

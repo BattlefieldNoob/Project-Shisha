@@ -306,10 +306,10 @@ export class JsonStateManager implements StateManager {
     return changes;
   }
 
-  compareRestaurantStates(previous: MonitoringState, current: MonitoringState, gracePeriodScans: number = 3): StateChange[] {
+  compareRestaurantStates(previous: MonitoringState, current: MonitoringState, _gracePeriodScans: number = 3): StateChange[] {
     const changes: StateChange[] = [];
     const monitoredUserSet = new Set(current.monitoredUsers);
-    const monitoredRestaurantSet = new Set(current.monitoredRestaurants || []);
+    const _monitoredRestaurantSet = new Set(current.monitoredRestaurants || []);
 
     const previousRestaurantTables = previous.restaurantTables || {};
     const currentRestaurantTables = current.restaurantTables || {};
@@ -614,7 +614,7 @@ export class JsonStateManager implements StateManager {
         // If the table datetime is in the future but disappeared, it was cancelled
         return 'table_cancelled';
       }
-    } catch (error) {
+    } catch (_error) {
       // If we can't parse the datetime, assume it was cancelled
       console.warn(`Warning: Could not parse table datetime "${table.quando}" for table ${table.idTavolo}`);
       return 'table_cancelled';

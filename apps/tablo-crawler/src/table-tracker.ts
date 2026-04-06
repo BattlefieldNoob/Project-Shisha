@@ -1,5 +1,5 @@
-import { TavoloDetails } from './http.ts';
-import { TableState, ParticipantState, StateChange } from './state-manager.ts';
+import { TavoloDetails } from './http';
+import { TableState, ParticipantState, StateChange } from './state-manager';
 
 export interface TableTracker {
   findMonitoredUsers(table: TavoloDetails, monitoredIds: number[]): number[];

@@ -223,7 +223,7 @@ export class ContinuousUserMonitor implements UserMonitor {
                                 // Table is finished, skip it from current monitoring
                                 continue;
                             }
-                        } catch (error) {
+                        } catch (_error) {
                             console.warn(`Warning: Could not parse table datetime "${tableSummary.quando}" for table ${tableSummary.idTavolo}`);
                         }
                     }
@@ -339,7 +339,7 @@ export class ContinuousUserMonitor implements UserMonitor {
                                 }
                                 await this.sleep(100);
                             }
-                        } catch (e) {
+                        } catch (_e) {
                             console.warn(`Failed to check new table ${tableSummary.idTavolo} for female creator`);
                         }
                     }
@@ -587,7 +587,7 @@ export class ContinuousUserMonitor implements UserMonitor {
             }
 
             return age;
-        } catch (e) {
+        } catch (_e) {
             console.warn(`Error calculating age for ${dateOfBirth}`);
             return 0;
         }

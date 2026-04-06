@@ -161,7 +161,7 @@ export function upsertUserPreferences(userId: number, prefs: {
   if (existing) {
     const updatedPrefs = { ...existing, ...prefs, updated_at: now }
     // Omit id for update
-    const { id, ...toUpdate } = updatedPrefs
+    const { id: _id, ...toUpdate } = updatedPrefs
 
     if (toUpdate.favorite_stations && Array.isArray(toUpdate.favorite_stations)) {
       toUpdate.favorite_stations = JSON.stringify(toUpdate.favorite_stations)

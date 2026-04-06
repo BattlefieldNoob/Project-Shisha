@@ -46,9 +46,8 @@ jobs:
         working-directory: apps/${{ inputs.app-name }}
 
       - name: Run TypeScript check
-        run: bun run tsc --noEmit
+        run: bun run typecheck
         working-directory: apps/${{ inputs.app-name }}
-        continue-on-error: true
 
       - name: Check for available lint script
         run: |

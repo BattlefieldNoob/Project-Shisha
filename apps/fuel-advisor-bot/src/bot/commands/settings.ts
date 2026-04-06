@@ -94,7 +94,7 @@ export function handleRemoveStation(bot: TelegramBot, msg: TelegramBot.Message, 
 
 export function handleSetFuel(bot: TelegramBot, msg: TelegramBot.Message, match: RegExpExecArray | null) {
     const chatId = msg.chat.id.toString()
-    let fuelType = match ? match[1].toUpperCase() : ''
+    const fuelType = match ? match[1].toUpperCase() : ''
 
     if (fuelType !== 'GASOLINE' && fuelType !== 'DIESEL') {
         return bot.sendMessage(msg.chat.id, 'Format: /setfuel GASOLINE or /setfuel DIESEL')
