@@ -1,0 +1,148 @@
+# NX-Enabled CI Workflow
+# Uses NX for build orchestration, caching, and affected project detection
+
+name: NX CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  NX_CLOUD_ACCESS_TOKEN: ${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
+
+jobs:
+  # Main CI job using NX
+  ci:
+    name: NX CI
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build affected
+        run: |
+          # Use origin/main as base for affected comparison
+          npx nx affected --target=build --parallel=3 --base=origin/main || \
+          npx nx affected --target=build --parallel=3 --base=HEAD~1 || \
+          npx nx run-many -t build --parallel=3
+
+      - name: Type check affected
+        run: |
+          npx nx affected --target=typecheck --parallel=3 --base=origin/main --skip-nx-cache || true
+
+      - name: Test affected
+        run: |
+          npx nx affected --target=test --parallel=3 --base=origin/main --skip-nx-cache || true
+
+      - name: Upload build artifacts
+        if: success()
+        uses: actions/upload-artifact@v7
+        with:
+          name: nx-affected-dist
+          path: apps/*/dist
+          retention-days: 7
+
+  # Docker build for affected apps only
+  docker-build:
+    name: Docker Build Affected
+    needs: ci
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build affected apps
+        run: |
+          npx nx affected --target=build --parallel=3 --base=origin/main || \
+          npx nx run-many -t build --parallel=3
+
+      - name: Get affected apps list
+        id: affected-apps
+        run: |
+          APPS=$(npx nx show projects --affected --with-target docker:build --plain --base=origin/main 2>/dev/null | tr '\n' ' ' || echo "")
+          echo "apps=$APPS" >> $GITHUB_OUTPUT
+        shell: bash
+
+      - name: Set up QEMU
+        if: steps.affected-apps.outputs.apps != ''
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        if: steps.affected-apps.outputs.apps != ''
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        if: steps.affected-apps.outputs.apps != ''
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build Docker for affected apps
+        if: steps.affected-apps.outputs.apps != ''
+        run: |
+          for app in ${{ steps.affected-apps.outputs.apps }}; do
+            echo "Building Docker for $app"
+            docker build -t "$app" -f "apps/$app/Dockerfile" "apps/$app"
+            docker tag "$app" "ghcr.io/${{ github.repository }}/$app:${{ github.sha }}"
+            docker push "ghcr.io/${{ github.repository }}/$app:${{ github.sha }}"
+          done
+
+  # Workflow to visualize the project graph
+  graph:
+    name: Generate Project Graph
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Generate project graph
+        run: npx nx graph --file=project-graph.json
+        continue-on-error: true
+
+      - name: Upload project graph
+        uses: actions/upload-artifact@v7
+        with:
+          name: project-graph
+          path: project-graph.json
+          retention-days: 7

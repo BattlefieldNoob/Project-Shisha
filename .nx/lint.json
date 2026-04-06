@@ -1,0 +1,23 @@
+{
+  "$schema": "https://nx.dev/schema/nx-plugin.json",
+  "targets": {
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "eslint src/ --fix",
+        "cwd": "{projectRoot}"
+      },
+      "cache": true,
+      "inputs": ["default"]
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsc --noEmit",
+        "cwd": "{projectRoot}"
+      },
+      "cache": true,
+      "inputs": ["default", "^production"]
+    }
+  }
+}

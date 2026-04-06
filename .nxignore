@@ -1,0 +1,36 @@
+# NX Ignore - Files and directories to exclude from NX processing
+
+# IDE and editor files
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Dependency directories
+node_modules
+bun.lockb
+
+# Build artifacts
+dist
+.nx/cache
+
+# Infrastructure
+infra/
+ansible/
+
+# Documentation
+*.md
+!.nxrc.json
+
+# Configuration files that shouldn't be processed
+.env
+.env.*
+!.env.example
+
+# Git
+.git
+.gitignore
