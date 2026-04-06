@@ -75,6 +75,10 @@ Thumbs.db
 .bun-debug.log
 bun.lockb
 
+# NX
+.nx/cache/
+.nx/state.json
+
 # Docker
 .docker/
 

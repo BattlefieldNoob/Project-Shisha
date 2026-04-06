@@ -11,7 +11,28 @@
     "=== Development ===": "",
     "dev:fuel-advisor-bot": "bun run --cwd apps/fuel-advisor-bot dev",
     "dev:tablo-crawler": "bun run --cwd apps/tablo-crawler dev",
-    "=== Build ===": "",
+    "=== NX Build Orchestration ===": "",
+    "nx:build": "nx run-many -t build",
+    "nx:build:affected": "nx affected -t build",
+    "nx:test": "nx run-many -t test",
+    "nx:test:affected": "nx affected -t test",
+    "nx:lint": "nx run-many -t lint",
+    "nx:lint:affected": "nx affected -t lint",
+    "nx:typecheck": "nx run-many -t typecheck",
+    "nx:typecheck:affected": "nx affected -t typecheck",
+    "nx:affected": "nx affected",
+    "nx:affected:dep-graph": "nx affected:dep-graph",
+    "nx:graph": "nx graph",
+    "nx:reset": "nx reset",
+    "nx:show:projects": "nx show projects",
+    "nx:show:projects:affected": "nx show projects --affected",
+    "nx:run": "nx run",
+    "nx:daemon": "nx daemon",
+    "nx:stop": "nx stop",
+    "nx:migrate": "nx migrate",
+    "nx:report": "nx report",
+    "nx:watch": "nx watch",
+    "=== Bun Build ===": "",
     "build": "bun run --recursive --if-present build",
     "build:fuel-advisor-bot": "bun run --cwd apps/fuel-advisor-bot build",
     "build:tablo-crawler": "bun run --cwd apps/tablo-crawler build",
@@ -42,7 +63,7 @@
     "workspaces:list": "bun pm ls -g --all",
     "workspaces:info": "bun run --cwd packages/shared-lib info && bun run --cwd packages/shared-config info",
     "install:all": "bun install",
-    "clean": "rm -rf apps/*/dist apps/*/node_modules packages/*/dist packages/*/node_modules node_modules bun.lockb 2>/dev/null; echo 'Cleaned build artifacts'",
+    "clean": "rm -rf apps/*/dist apps/*/node_modules packages/*/dist packages/*/node_modules node_modules bun.lockb .nx/cache 2>/dev/null; echo 'Cleaned build artifacts'",
     "=== Docker & Deployment ===": "",
     "docker:build:fuel-advisor-bot": "docker build -t fuel-advisor-bot -f apps/fuel-advisor-bot/Dockerfile apps/fuel-advisor-bot",
     "docker:build:tablo-crawler": "docker build -t tablo-crawler -f apps/tablo-crawler/Dockerfile apps/tablo-crawler",
@@ -51,6 +72,7 @@
   },
   "devDependencies": {
     "bun-types": "^1.3.10",
+    "nx": "^20.0.0",
     "prettier": "^3.2.0",
     "typescript": "^5.3.3"
   },
@@ -58,5 +80,8 @@
   "engines": {
     "node": ">=20.0.0",
     "bun": ">=1.3.0"
+  },
+  "nx": {
+    "includedScripts": []
   }
 }

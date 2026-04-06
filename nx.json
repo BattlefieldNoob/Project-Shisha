@@ -1,0 +1,58 @@
+{
+  "$schema": "./node_modules/nx/schemas/nx-schema.json",
+  "namedInputs": {
+    "default": ["{projectRoot}/**/*", "sharedGlobals"],
+    "sharedGlobals": ["{workspaceRoot}/bun.lock", "{workspaceRoot}/tsconfig.base.json"],
+    "production": ["!{projectRoot}/**/*.spec.ts", "!{projectRoot}/**/*.test.ts", "!{projectRoot}/**/*.spec.tsx", "!{projectRoot}/**/*.test.tsx", "!{projectRoot}/**/test/**", "!{projectRoot}/**/__tests__/**", "!{projectRoot}/jest.config.*", "!{projectRoot}/vitest.config.*", "!{projectRoot}/vitest.workspace.ts"]
+  },
+  "plugins": [
+    {
+      "plugin": "@nx/js/plugin",
+      "options": {
+        "targetDefaults": {
+          "build": {
+            "dependsOn": ["^build"],
+            "cache": true,
+            "outputs": ["{projectRoot}/dist"]
+          },
+          "test": {
+            "cache": true,
+            "inputs": ["default", "^production"]
+          },
+          "typecheck": {
+            "cache": true
+          },
+          "lint": {
+            "cache": true
+          }
+        }
+      }
+    }
+  ],
+  "targetDefaults": {
+    "build": {
+      "dependsOn": ["^build"],
+      "cache": true,
+      "outputs": ["{projectRoot}/dist", "{projectRoot}/.nx/cache"]
+    },
+    "test": {
+      "cache": true,
+      "inputs": ["default", "^production"],
+      "outputs": []
+    },
+    "typecheck": {
+      "cache": true,
+      "inputs": ["default", "^production"]
+    },
+    "lint": {
+      "cache": true,
+      "inputs": ["default"]
+    },
+    "dev": {
+      "cache": false
+    }
+  },
+  "defaultBase": "main",
+  "useInferencePlugins": true,
+  "inferFromPackageJson": true
+}

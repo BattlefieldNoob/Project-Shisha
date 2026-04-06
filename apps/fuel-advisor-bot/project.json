@@ -1,0 +1,56 @@
+{
+  "name": "fuel-advisor-bot",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "apps/fuel-advisor-bot",
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun build src/index.ts --outdir dist --target node --format esm",
+        "cwd": "apps/fuel-advisor-bot",
+        "cache": true
+      },
+      "outputs": ["{projectRoot}/dist"]
+    },
+    "dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run src/index.ts",
+        "cwd": "apps/fuel-advisor-bot"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun test",
+        "cwd": "apps/fuel-advisor-bot"
+      },
+      "cache": true
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsc --noEmit",
+        "cwd": "apps/fuel-advisor-bot"
+      },
+      "cache": true
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "eslint src/ --fix",
+        "cwd": "apps/fuel-advisor-bot"
+      },
+      "cache": true
+    },
+    "docker:build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "docker build -t fuel-advisor-bot -f Dockerfile .",
+        "cwd": "apps/fuel-advisor-bot"
+      }
+    }
+  },
+  "implicitDependencies": ["shared-lib", "shared-config"]
+}
