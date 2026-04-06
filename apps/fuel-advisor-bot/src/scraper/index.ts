@@ -8,20 +8,24 @@ export async function runDailyScrape() {
   logger.info('Starting daily scrape...')
   try {
     // 1. Download and Process Stations
-    const stationsCsv = await downloadMimitCsv(config.MIMIT_STATIONS_URL)
-    const stations = parseStationsCsv(stationsCsv)
+    const stationsResult = await downloadMimitCsv(config.MIMIT_STATIONS_URL)
+    const { stations, stats: stationStats } = parseStationsCsv(stationsResult.content)
 
     for (const station of stations) {
       upsertStation(station)
     }
-    logger.info(`Successfully saved ${stations.length} stations to database`)
+    logger.info(`Successfully saved ${stations.length} stations to database`, {
+      totalRecords: stationStats.totalRecords,
+      validRecords: stationStats.validRecords,
+      skippedRecords: stationStats.skippedRecords,
+    })
 
     // 2. Build Set of valid MIMIT IDs for filtering
     const validMimitIds = new Set(stations.map(s => s.mimit_id))
 
     // 3. Download and Process Prices
-    const pricesCsv = await downloadMimitCsv(config.MIMIT_PRICES_URL)
-    const prices = parsePricesCsv(pricesCsv, validMimitIds)
+    const pricesResult = await downloadMimitCsv(config.MIMIT_PRICES_URL)
+    const { prices, stats: priceStats } = parsePricesCsv(pricesResult.content, validMimitIds)
 
     let insertedPrices = 0
     for (const price of prices) {
@@ -35,7 +39,11 @@ export async function runDailyScrape() {
         insertedPrices++
       }
     }
-    logger.info(`Successfully saved ${insertedPrices} prices to database`)
+    logger.info(`Successfully saved ${insertedPrices} prices to database`, {
+      totalRecords: priceStats.totalRecords,
+      validRecords: priceStats.validRecords,
+      skippedRecords: priceStats.skippedRecords,
+    })
     logger.info('Daily scrape completed successfully')
   } catch (err) {
     logger.error('Error during daily scrape', { error: err })
