@@ -1,0 +1,62 @@
+# Reusable workflow to build with NX caching
+name: NX Build
+
+on:
+  workflow_call:
+    inputs:
+      app-name:
+        description: Application folder under apps/
+        required: true
+        type: string
+      runner:
+        description: Runner to use
+        required: false
+        type: string
+        default: ubuntu-latest
+
+outputs:
+  artifact-name:
+    description: Name of the built artifact
+    value: ${{ inputs.app-name }}-dist
+
+env:
+  NX_CLOUD_ACCESS_TOKEN: ${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
+
+jobs:
+  build:
+    name: Build ${{ inputs.app-name }}
+    runs-on: ${{ inputs.runner }}
+    outputs:
+      artifact-name: ${{ inputs.app-name }}-dist
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build with NX cache
+        run: npx nx build ${{ inputs.app-name }}
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.app-name }}-dist
+          path: apps/${{ inputs.app-name }}/dist
+          retention-days: 7
+
+      - name: Store cache
+        uses: actions/cache@v4
+        with:
+          path: .nx/cache
+          key: nx-${{ inputs.app-name }}-${{ github.sha }}
+          restore-keys: |
+            nx-${{ inputs.app-name }}-
